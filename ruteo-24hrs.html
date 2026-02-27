@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RUTEO 24HRS</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;background:#0d1117;color:#e6edf3;height:100vh;overflow:hidden;font-size:13px;}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,#003A8C,#0051BA 55%,#1a6dd4);padding:0 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FFDA1A;height:52px;flex-shrink:0;}
+.header-left{display:flex;align-items:center;gap:12px;}
+.header h1{font-size:15px;font-weight:700;letter-spacing:1.5px;color:#FFDA1A;text-transform:uppercase;}
+.header-sub{font-size:10px;color:rgba(255,255,255,.45);letter-spacing:.5px;}
+.header-actions{display:flex;gap:7px;align-items:center;}
+
+/* NOTIF */
+#notif{display:none;position:fixed;top:60px;right:18px;z-index:9999;padding:9px 15px;border-radius:6px;font-weight:600;font-size:12px;max-width:320px;animation:sIn .18s ease;box-shadow:0 8px 24px rgba(0,0,0,.5);}
+@keyframes sIn{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
+.notif-ok{background:rgba(63,185,80,.12);color:#3fb950;border:1px solid #3fb950;}
+.notif-err{background:rgba(248,81,73,.15);color:#ff7b72;border:1px solid #f85149;}
+.notif-warn{background:rgba(240,136,62,.15);color:#f0883e;border:1px solid #f0883e;}
+
+/* LAYOUT */
+.app{display:flex;height:calc(100vh - 52px);}
+
+/* SIDEBAR */
+.sidebar{width:290px;min-width:290px;background:#161b22;border-right:1px solid #30363d;overflow-y:auto;display:flex;flex-direction:column;}
+.sb-title{padding:9px 12px 3px;font-size:9px;font-weight:700;letter-spacing:2px;color:#656d76;text-transform:uppercase;}
+
+/* MODULE */
+.module{border-bottom:1px solid #30363d;}
+.module-header{padding:8px 13px;font-weight:600;font-size:12px;cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center;transition:background .12s;color:#8b949e;}
+.module-header:hover{background:#1c2128;color:#e6edf3;}
+.chev{font-size:8px;transition:transform .2s;color:#656d76;}
+.chev.open{transform:rotate(180deg);}
+.mod-body{display:none;flex-direction:column;gap:7px;padding:11px 13px 13px;border-top:1px solid #30363d;}
+.mod-body.show{display:flex;}
+.lbl{font-size:9px;font-weight:700;color:#656d76;text-transform:uppercase;letter-spacing:.5px;}
+
+/* UPLOAD */
+input[type=“file”]{width:100%;background:#1c2128;border:1px dashed #3d444d;border-radius:6px;color:#8b949e;font-size:11px;padding:5px 7px;cursor:pointer;}
+input[type=“file”]:hover{border-color:#0051BA;}
+
+/* BUTTONS */
+button{font-family:-apple-system,BlinkMacSystemFont,‘Segoe UI’,Helvetica,Arial,sans-serif;font-weight:600;font-size:12px;border:none;border-radius:6px;cursor:pointer;padding:6px 11px;transition:all .12s;display:inline-flex;align-items:center;gap:5px;}
+.bp{background:#0051BA;color:#fff;}.bp:hover{background:#1a6dd4;}
+.bs{background:#FFDA1A;color:#111;}.bs:hover{background:#e6c400;}
+.bd{background:#f85149;color:#fff;}.bd:hover{background:#b22c2a;}
+.bg{background:transparent;color:#8b949e;border:1px solid #30363d;}.bg:hover{background:#22272e;color:#e6edf3;}
+.bgr{background:#3fb950;color:#0d1117;}.bgr:hover{filter:brightness(1.1);}
+.bfull{width:100%;justify-content:center;}
+.bsm{padding:4px 8px;font-size:11px;}
+button:disabled{opacity:.35;cursor:not-allowed;}
+
+/* MAIN */
+.main-panel{flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0;}
+
+/* TABS */
+.tabs{display:flex;background:#161b22;border-bottom:1px solid #30363d;padding:0 14px;gap:1px;flex-shrink:0;}
+.tab{padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer;color:#8b949e;border-bottom:2px solid transparent;transition:all .12s;white-space:nowrap;display:flex;align-items:center;gap:4px;}
+.tab:hover{color:#e6edf3;}
+.tab.active{color:#FFDA1A;border-bottom-color:#FFDA1A;}
+.tbadge{background:#0051BA;color:#fff;font-size:9px;font-weight:700;border-radius:10px;padding:1px 5px;min-width:18px;text-align:center;}
+.tbadge.green{background:#3fb950;color:#0d1117;}
+.tbadge.warn{background:#f0883e;color:#0d1117;}
+
+.tp{display:none;flex:1;overflow:hidden;flex-direction:column;padding:12px 14px;gap:9px;}
+.tp.active{display:flex;}
+
+/* STATS */
+.stats-bar{display:flex;gap:7px;flex-wrap:wrap;flex-shrink:0;}
+.stat{background:#1c2128;border:1px solid #30363d;border-radius:6px;padding:7px 13px;}
+.stat-val{font-size:20px;font-weight:700;color:#FFDA1A;font-family:‘SFMono-Regular’,Consolas,‘Liberation Mono’,Menlo,monospace;line-height:1;}
+.stat-label{font-size:9px;color:#656d76;text-transform:uppercase;letter-spacing:.5px;}
+
+/* CARD */
+.card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:13px;display:flex;flex-direction:column;gap:9px;}
+.card-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#8b949e;}
+
+/* EXPORT BUTTONS GROUP */
+.export-group{background:#1c2128;border:1px solid #30363d;border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
+.export-group-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#656d76;padding-bottom:4px;border-bottom:1px solid #30363d;}
+.export-btns{display:flex;gap:6px;flex-wrap:wrap;}
+
+/* LOG */
+.log-panel{flex:1;overflow-y:auto;background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:8px 10px;font-family:‘SFMono-Regular’,Consolas,‘Liberation Mono’,Menlo,monospace;font-size:11px;line-height:1.7;color:#8b949e;}
+.log-panel:empty::before{content:‘Sin actividad aún…’;color:#3d444d;}
+.log-ok{color:#3fb950;}
+.log-err{color:#f85149;}
+.log-warn{color:#f0883e;}
+.log-info{color:#7bb8ff;}
+
+/* STATUS BADGES */
+.status-row{display:flex;gap:6px;flex-wrap:wrap;}
+.sbadge{font-size:10px;font-weight:600;border-radius:20px;padding:2px 9px;font-family:‘SFMono-Regular’,Consolas,monospace;}
+.sbadge-ok{background:rgba(63,185,80,.15);color:#3fb950;}
+.sbadge-warn{background:rgba(240,136,62,.15);color:#f0883e;}
+.sbadge-blue{background:rgba(0,81,186,.2);color:#7bb8ff;}
+
+/* DIVIDER */
+hr{border:none;border-top:1px solid #30363d;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#3d444d;border-radius:3px;}
+</style>
+
+</head>
+<body>
+
+<div id="notif"></div>
+
+<!-- HEADER -->
+
+<div class="header">
+  <div class="header-left">
+    <span style="font-size:20px">⚡</span>
+    <div><h1>Ruteo 24HRS</h1><div class="header-sub">Pre Ruteo · Post Ruteo · Exportaciones</div></div>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- ════ SIDEBAR ════ -->
+
+  <div class="sidebar">
+    <div class="sb-title">Módulos</div>
+
+```
+<!-- PRE RUTEO -->
+<div class="module">
+  <div class="module-header" onclick="toggleMod('pre',this)">
+    <span>📋 1. Pre Ruteo</span><span class="chev open">▲</span>
+  </div>
+  <div class="mod-body show" id="mod-pre">
+    <div class="lbl">Archivo Base SCI</div>
+    <input type="file" id="file-f1" accept=".xlsx,.xls" onchange="cargarF1(this)">
+    <button class="bp bfull f1-btn" onclick="descProyectos()" disabled>🏗 Descargar Proyectos</button>
+    <button class="bp bfull f1-btn" onclick="descPostSales()" disabled>📦 Descargar Post Sales</button>
+    <button class="bp bfull f1-btn" onclick="descMiniTicket()" disabled>🎫 Descargar Mini Ticket</button>
+    <button class="bp bfull f1-btn" onclick="descRegularTicket()" disabled>🎟 Descargar Ticket Regular</button>
+  </div>
+</div>
+
+<!-- POST RUTEO -->
+<div class="module">
+  <div class="module-header" onclick="toggleMod('post',this)">
+    <span>🗺 2. Post Ruteo</span><span class="chev open">▲</span>
+  </div>
+  <div class="mod-body show" id="mod-post">
+    <div class="lbl">1. ISOs ruteadas <span style="color:#f85149">*</span></div>
+    <input type="file" id="file-isos" accept=".xlsx,.xls,.csv" onchange="setFile('isos',this)">
+    <div class="lbl">2. Plan Simpliroute <span style="color:#f85149">*</span></div>
+    <input type="file" id="file-plan" accept=".xlsx,.xls,.csv" onchange="setFile('plan',this)">
+    <div class="lbl">3. Conversión Vehículos <span style="color:#f85149">*</span></div>
+    <input type="file" id="file-conv" accept=".xlsx,.xls,.csv" onchange="setFile('conv',this)">
+    <button class="bs bfull" id="btn-procesar" onclick="procesarPostRuteo()">▶ Procesar Post Ruteo</button>
+  </div>
+</div>
+```
+
+  </div>
+
+  <!-- ════ MAIN PANEL ════ -->
+
+  <div class="main-panel">
+    <div class="tabs">
+      <div class="tab active" onclick="aTab('t-log',this)">▸ Actividad</div>
+      <div class="tab" onclick="aTab('t-exports',this)">🚀 Exportaciones <span class="tbadge" id="badge-exp">0</span></div>
+    </div>
+
+```
+<!-- TAB: LOG -->
+<div class="tp active" id="t-log">
+  <div class="stats-bar" id="stats-bar" style="display:none">
+    <div class="stat"><div class="stat-val" id="st-total">0</div><div class="stat-label">ISOs procesadas</div></div>
+    <div class="stat"><div class="stat-val" id="st-match">0</div><div class="stat-label">Encontradas</div></div>
+    <div class="stat"><div class="stat-val" id="st-ps">0</div><div class="stat-label">Post Sales</div></div>
+    <div class="stat"><div class="stat-val" id="st-resto">0</div><div class="stat-label">Resto</div></div>
+  </div>
+  <div class="log-panel" id="log"></div>
+  <div class="status-row" id="status-row" style="flex-shrink:0"></div>
+</div>
+
+<!-- TAB: EXPORTS -->
+<div class="tp" id="t-exports">
+  <div class="export-group">
+    <div class="export-group-title">Pre Ruteo — Archivos SCI</div>
+    <div class="export-btns">
+      <button class="bp bsm f1-btn" onclick="descProyectos()" disabled>🏗 Proyectos</button>
+      <button class="bp bsm f1-btn" onclick="descPostSales()" disabled>📦 Post Sales</button>
+      <button class="bp bsm f1-btn" onclick="descMiniTicket()" disabled>🎫 Mini Ticket</button>
+      <button class="bp bsm f1-btn" onclick="descRegularTicket()" disabled>🎟 Ticket Regular</button>
+    </div>
+  </div>
+  <div class="export-group">
+    <div class="export-group-title">Post Ruteo — ROUTE TO</div>
+    <div class="export-btns">
+      <button class="bs" id="btn-exp-preola" onclick="exportarPreola()" disabled>⬇ Preola (todas)</button>
+      <button class="bp" id="btn-exp-ps-sep" onclick="exportarPostSalesSep()" disabled>📦 Post Sales</button>
+      <button class="bg" id="btn-exp-resto" onclick="exportarResto()" disabled>📋 Resto</button>
+    </div>
+  </div>
+</div>
+```
+
+  </div>
+</div>
+
+<script>
+
+// ══ UTILS ══
+const gid = id => document.getElementById(id);
+let notifTimer;
+function notif(msg, type='ok'){
+  const el=gid('notif');
+  const cls={ok:'notif-ok',err:'notif-err',warn:'notif-warn'};
+  el.className=cls[type]||cls.ok;
+  el.textContent=msg;
+  el.style.display='block';
+  clearTimeout(notifTimer);
+  notifTimer=setTimeout(()=>{el.style.display='none';},3000);
+}
+
+function log(msg, type=''){
+  const p=document.createElement('div');
+  const cls={ok:'log-ok',err:'log-err',warn:'log-warn',info:'log-info'};
+  if(type && cls[type]) p.className=cls[type];
+  const ts=new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  p.textContent=`[${ts}] ${msg}`;
+  gid('log').appendChild(p);
+  gid('log').scrollTop=9999;
+}
+
+function getFechaMañana(){
+  const f=new Date(); f.setDate(f.getDate()+1);
+  return `${String(f.getDate()).padStart(2,'0')}-${String(f.getMonth()+1).padStart(2,'0')}-${f.getFullYear()}`;
+}
+function getFechaHoy(){
+  const f=new Date();
+  return `${String(f.getDate()).padStart(2,'0')}-${String(f.getMonth()+1).padStart(2,'0')}-${f.getFullYear()}`;
+}
+function removeAccents(str){
+  return str?str.toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().trim():"";
+}
+function readFile(file){
+  return new Promise((res,rej)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      try{
+        const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+        res(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''}));
+      }catch(err){rej(err);}
+    };
+    reader.onerror=rej;
+    reader.readAsArrayBuffer(file);
+  });
+}
+function exportXlsx(data, nombre, skipHeader=false){
+  const ws=XLSX.utils.json_to_sheet(data,{skipHeader});
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Sheet1');
+  XLSX.writeFile(wb,nombre);
+}
+function findCol(row, opts){
+  const keys=Object.keys(row);
+  return keys.find(k=>opts.some(o=>k.toLowerCase().trim()===o.toLowerCase().trim()))
+      || keys.find(k=>opts.some(o=>k.toLowerCase().includes(o.toLowerCase())));
+}
+
+// ══ STATE ══
+const MINI_COMUNAS = new Set(["ÑUÑOA","NUNOA","LAS CONDES","VITACURA","PROVIDENCIA","SANTIAGO"]);
+let dataF1=null;       // Pre Ruteo SCI
+let files={isos:null,plan:null,conv:null};  // Post Ruteo files
+let postResult=null;   // {allRows, postSalesRows, restoRows}
+
+// ══ PRE RUTEO ══
+async function cargarF1(input){
+  const file=input.files[0]; if(!file) return;
+  try{
+    dataF1=await readFile(file);
+    gid('uf-f1').textContent='✓ '+file.name;
+    gid('uf-f1').className='upload-file ok';
+    gid('uz-f1').classList.add('loaded');
+    document.querySelectorAll('.f1-btn').forEach(b=>b.disabled=false);
+    document.querySelectorAll('#btn-exp-proyectos,#btn-exp-postsales,#btn-exp-mini,#btn-exp-regular').forEach(b=>b.disabled=false);
+    document.getElementById('btn-exp-preola').disabled=false;
+    log(`Pre Ruteo: ${dataF1.length} filas cargadas — ${file.name}`,'ok');
+    input.value='';
+  }catch(e){log('Error Pre Ruteo: '+e,'err');notif('Error al leer archivo','err');}
+}
+
+function esComunaMini(c){
+  return MINI_COMUNAS.has(removeAccents(c))||MINI_COMUNAS.has((c||'').toUpperCase().trim());
+}
+
+function descProyectos(){
+  if(!dataF1) return notif('Carga el archivo SCI primero','warn');
+  const rows=dataF1.filter(r=>r['TIPO_VISITA']==='PROJECT');
+  if(!rows.length) return notif('Sin datos de PROJECT','warn');
+  exportXlsx(rows,`RUTEAR PROYECTOS ${getFechaMañana()}.xlsx`);
+  log(`Proyectos exportados: ${rows.length} filas`,'ok');
+}
+function descPostSales(){
+  if(!dataF1) return notif('Carga el archivo SCI primero','warn');
+  const rows=dataF1.filter(r=>r['TIPO_VISITA']==='POST_SALES');
+  if(!rows.length) return notif('Sin datos de POST_SALES','warn');
+  exportXlsx(rows,`RUTEAR POST SALES ${getFechaMañana()}.xlsx`);
+  log(`Post Sales exportado: ${rows.length} filas`,'ok');
+}
+function descMiniTicket(){
+  if(!dataF1) return notif('Carga el archivo SCI primero','warn');
+  const rows=dataF1.filter(r=>{
+    if(r['TIPO_VISITA']==='PROJECT'||r['TIPO_VISITA']==='POST_SALES') return false;
+    if(r['MINI_TICKET']!=='mini_ticket') return false;
+    return esComunaMini(r['D_COUNTY']||r['CONDUCTOR']||r['Conductor']||'');
+  });
+  if(!rows.length) return notif('Sin Mini Tickets para las comunas permitidas','warn');
+  exportXlsx(rows,`RUTEAR MINI TICKET ${getFechaMañana()}.xlsx`);
+  log(`Mini Ticket exportado: ${rows.length} filas`,'ok');
+}
+function descRegularTicket(){
+  if(!dataF1) return notif('Carga el archivo SCI primero','warn');
+  const rows=dataF1.filter(r=>{
+    if(r['TIPO_VISITA']==='PROJECT'||r['TIPO_VISITA']==='POST_SALES') return false;
+    if(r['MINI_TICKET']==='no_mini_ticket') return true;
+    if(r['MINI_TICKET']==='mini_ticket') return !esComunaMini(r['D_COUNTY']||r['CONDUCTOR']||r['Conductor']||'');
+    return false;
+  });
+  if(!rows.length) return notif('Sin datos para Ticket Regular','warn');
+  exportXlsx(rows,`RUTEAR TICKET ${getFechaMañana()}.xlsx`);
+  log(`Regular Ticket exportado: ${rows.length} filas`,'ok');
+}
+
+// ══ POST RUTEO: FILE SETTERS ══
+function setFile(key, input){
+  const file=input.files[0]; if(!file) return;
+  files[key]=file;
+  const labels={isos:'uf-isos',plan:'uf-plan',conv:'uf-conv'};
+  const zones={isos:'uz-isos',plan:'uz-plan',conv:'uz-conv'};
+  gid(labels[key]).textContent='✓ '+file.name;
+  gid(labels[key]).className='upload-file ok';
+  gid(zones[key]).classList.add('loaded');
+  log(`Archivo "${key}" cargado: ${file.name}`,'info');
+  input.value='';
+}
+
+// ══ POST RUTEO: PROCESO PRINCIPAL ══
+async function procesarPostRuteo(){
+  if(!files.isos||!files.plan||!files.conv){
+    notif('Carga los 3 archivos primero','warn');
+    log('Faltan archivos para el Post Ruteo','warn');
+    return;
+  }
+  gid('btn-procesar').disabled=true;
+  log('Iniciando Post Ruteo...','info');
+
+  try{
+    const [rowsISOs, rowsPlan, rowsConv] = await Promise.all([
+      readFile(files.isos),
+      readFile(files.plan),
+      readFile(files.conv)
+    ]);
+    log(`ISOs: ${rowsISOs.length} filas | Plan: ${rowsPlan.length} filas | Conversión: ${rowsConv.length} filas`);
+
+    // ── 1. Detectar columnas ──
+    const kISO   = findCol(rowsISOs[0], ['ISO','iso','Iso']);
+    const kTit   = findCol(rowsPlan[0],  ['Título','Titulo','TITULO','TÍTULO','Title','ISO']);
+    const kDofi  = findCol(rowsPlan[0],  ['ID de referencia','ID_REFERENCIA','DOFI','Dofi','id de referencia']);
+    const kVehI  = findCol(rowsPlan[0],  ['Vehículo','Vehiculo','VEHICULO','VEHÍCULO','Vehicle','Ruta']);
+    const kVini  = findCol(rowsConv[0],  ['VEH INICIAL','VEH_INICIAL','INICIAL','veh inicial']);
+    const kVfin  = findCol(rowsConv[0],  ['VEH FINAL','VEH_FINAL','FINAL','veh final']);
+
+    if(!kISO)  throw new Error(`No se encontró columna ISO en el archivo de ISOs. Cols: ${Object.keys(rowsISOs[0]).join(', ')}`);
+    if(!kTit)  throw new Error(`No se encontró columna Título en el Plan. Cols: ${Object.keys(rowsPlan[0]).join(', ')}`);
+    if(!kDofi) throw new Error(`No se encontró ID de referencia en el Plan. Cols: ${Object.keys(rowsPlan[0]).join(', ')}`);
+    if(!kVehI) throw new Error(`No se encontró Vehículo en el Plan. Cols: ${Object.keys(rowsPlan[0]).join(', ')}`);
+    if(!kVini) throw new Error(`No se encontró VEH INICIAL en Conversión. Cols: ${Object.keys(rowsConv[0]).join(', ')}`);
+    if(!kVfin) throw new Error(`No se encontró VEH FINAL en Conversión. Cols: ${Object.keys(rowsConv[0]).join(', ')}`);
+
+    log(`Columnas detectadas: ISO="${kISO}", Título="${kTit}", Dofi="${kDofi}", Veh="${kVehI}"`, 'info');
+
+    // ── 2. Construir mapa de conversión ──
+    const mapConv={};
+    rowsConv.forEach(r=>{
+      const ini=(r[kVini]||'').trim().toUpperCase();
+      const fin=(r[kVfin]||'').trim().toUpperCase();
+      if(ini) mapConv[ini]=fin||ini;
+    });
+    log(`Mapa de conversión: ${Object.keys(mapConv).length} vehículos`);
+
+    // ── 3. Construir mapa del Plan: Título → {dofi, vehInicial, vehFinal} ──
+    const mapPlan={};
+    rowsPlan.forEach(r=>{
+      const t=(r[kTit]||'').trim().toUpperCase();
+      if(!t||t==='INICIO'||t==='FIN') return;
+      const vehIni=(r[kVehI]||'').trim().toUpperCase();
+      const vehFin=mapConv[vehIni]||vehIni; // si no hay conversión, se deja el mismo
+      mapPlan[t]={dofi:(r[kDofi]||'').trim(), vehIni, vehFin};
+    });
+    log(`Plan indexado: ${Object.keys(mapPlan).length} ISOs (sin Inicio/Fin)`);
+
+    // ── 4. Cruzar ISOs ruteadas con el plan ──
+    const isosRuteadas = rowsISOs
+      .map(r=>(r[kISO]||'').trim().toUpperCase())
+      .filter(iso=>iso&&iso!=='INICIO'&&iso!=='FIN');
+
+    let matched=0, unmatched=0;
+    const resultado = isosRuteadas.map(iso=>{
+      const found=mapPlan[iso];
+      if(found){ matched++;
+        return {iso, dofi:found.dofi, vehIni:found.vehIni, vehFin:found.vehFin, _found:true};
+      } else { unmatched++;
+        return {iso, dofi:'', vehIni:'', vehFin:'', _found:false};
+      }
+    });
+
+    log(`Cruce: ${matched} encontradas, ${unmatched} no encontradas en el plan`,(unmatched>0?'warn':'ok'));
+
+    // ── 5. Separar Post Sales del resto ──
+    // "Post Sales" se detecta si vehFin contiene VEH99, VEH101, VEH102 o el vehInicial contenía Post Venta
+    // Pero también lo podemos sacar del archivo SCI (F1) si está cargado
+    // Lógica: detectar si el vehFin es uno de los vehículos de postventa especiales
+    const PS_VEHS = new Set(['VEH99','VEH101','VEH102','VEH99','POST VENTA','POSTVENTA']);
+    const isPostSales = r => {
+      const v = (r.vehFin||r.vehIni||'').toUpperCase();
+      return PS_VEHS.has(v)||v.includes('POST')||v.includes('POSTVENTA');
+    };
+
+    const postSalesRows = resultado.filter(r=>r._found && isPostSales(r));
+    const restoRows     = resultado.filter(r=>r._found && !isPostSales(r));
+
+    log(`Post Sales: ${postSalesRows.length} | Resto: ${restoRows.length}`,'ok');
+
+    // Guardar resultado
+    postResult = {allRows:resultado, postSalesRows, restoRows};
+
+    // Habilitar exportaciones
+    ['btn-exp-preola','btn-exp-ps-sep','btn-exp-resto'].forEach(id=>gid(id).disabled=false);
+
+    // Status badges
+    gid('stats-bar').style.display='flex';
+    gid('st-total').textContent=isosRuteadas.length;
+    gid('st-match').textContent=matched;
+    gid('st-ps').textContent=postSalesRows.length;
+    gid('st-resto').textContent=restoRows.length;
+    gid('badge-exp').textContent=matched;
+    gid('status-row').innerHTML=`
+      <span class="sbadge sbadge-ok">${matched} encontradas</span>
+      ${unmatched>0?`<span class="sbadge sbadge-warn">${unmatched} sin match</span>`:''}
+      <span class="sbadge sbadge-blue">${postSalesRows.length} Post Sales</span>
+      <span class="sbadge sbadge-blue">${restoRows.length} Resto</span>
+    `;
+
+    notif('✅ Post Ruteo procesado','ok');
+
+  }catch(e){
+    log('ERROR: '+e.message,'err');
+    notif('Error: '+e.message,'err');
+    console.error(e);
+  }finally{
+    gid('btn-procesar').disabled=false;
+  }
+}
+
+// ══ EXPORTACIONES POST RUTEO ══
+
+// PREOLA: todas las ISOs ruteadas → DOFI + VEH FINAL, sin encabezado
+function exportarPreola(){
+  if(!postResult) return notif('Procesa el Post Ruteo primero','warn');
+  const rows = postResult.allRows
+    .filter(r=>r._found && r.dofi)
+    .map(r=>({A:r.dofi, B:r.vehFin}));
+  if(!rows.length) return notif('Sin DOFIs para exportar','warn');
+  exportXlsx(rows, `PREOLA ROUTE TO ${getFechaHoy()} entregas ${getFechaMañana()}.xlsx`, true);
+  log(`Preola exportada: ${rows.length} filas`,'ok');
+  notif('⬇ Preola exportada');
+}
+
+// POST SALES separado: solo las de post sales → DOFI + VEH FINAL, sin encabezado
+function exportarPostSalesSep(){
+  if(!postResult) return notif('Procesa el Post Ruteo primero','warn');
+  const rows = postResult.postSalesRows
+    .filter(r=>r.dofi)
+    .map(r=>({A:r.dofi, B:r.vehFin}));
+  if(!rows.length) return notif('Sin Post Sales para exportar','warn');
+  exportXlsx(rows, `POST SALES ROUTE TO ${getFechaHoy()} entregas ${getFechaMañana()}.xlsx`, true);
+  log(`Post Sales separado exportado: ${rows.length} filas`,'ok');
+  notif('📦 Post Sales exportado');
+}
+
+// RESTO separado: todo excepto post sales → DOFI + VEH FINAL, sin encabezado
+function exportarResto(){
+  if(!postResult) return notif('Procesa el Post Ruteo primero','warn');
+  const rows = postResult.restoRows
+    .filter(r=>r.dofi)
+    .map(r=>({A:r.dofi, B:r.vehFin}));
+  if(!rows.length) return notif('Sin filas de resto para exportar','warn');
+  exportXlsx(rows, `RESTO ROUTE TO ${getFechaHoy()} entregas ${getFechaMañana()}.xlsx`, true);
+  log(`Resto exportado: ${rows.length} filas`,'ok');
+  notif('📋 Resto exportado');
+}
+
+function toggleMod(id, header){
+  const body = gid('mod-'+id);
+  const chev = header.querySelector('.chev');
+  const isOpen = body.classList.contains('show');
+  if(isOpen){ body.classList.remove('show'); body.style.display='none'; chev.classList.remove('open'); }
+  else { body.classList.add('show'); body.style.display='flex'; chev.classList.add('open'); }
+}
+
+function aTab(id, btn){
+  document.querySelectorAll('.tp').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  gid(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+
+log('Sistema listo. Carga los archivos para comenzar.','info');
+
+</script>
+
+</body>
+</html>
