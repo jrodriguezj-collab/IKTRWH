@@ -1217,7 +1217,17 @@ function exportarExcel(){
 
 function exportarJSON(){
   if(!masterData.length&&!proyectosData.length) return notif("Sin datos.", true);
-  const payload={masterData,proyectosData,colsVisible:[...colsVisible],savedAt:new Date().toISOString()};
+  const payload={
+    masterData,
+    proyectosData,
+    colsVisible:[...colsVisible],
+    extraCols,
+    colFilters: Object.fromEntries(Object.entries(colFilters).map(([k,v])=>[k,[...v]])),
+    sortCol,
+    sortDir,
+    pvPlanData,
+    savedAt:new Date().toISOString()
+  };
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download=`rutas_ikea_${new Date().toISOString().slice(0,10)}.json`; a.click();
@@ -1230,13 +1240,19 @@ function importarJSON(input){
   reader.onload=e=>{
     try{
       const p=JSON.parse(e.target.result);
-      masterData=p.masterData||[];
-      proyectosData=p.proyectosData||[];
-      colsVisible=new Set(p.colsVisible||[...COLS_DEFAULT_VIS]);
-      colFilters={};
-      initColVis(); refresh(); renderProyectos();
+      masterData      = p.masterData||[];
+      proyectosData   = p.proyectosData||[];
+      colsVisible     = new Set(p.colsVisible||[...COLS_DEFAULT_VIS]);
+      extraCols       = p.extraCols||[];
+      colFilters      = {};
+      if(p.colFilters) Object.entries(p.colFilters).forEach(([k,v])=>{ colFilters[k]=new Set(v); });
+      sortCol         = p.sortCol||null;
+      sortDir         = p.sortDir||null;
+      pvPlanData      = p.pvPlanData||[];
+      initColVis(); initExportCols(); refresh(); renderProyectos();
+      if(pvPlanData.length) renderDupCheck();
       notif(`📂 Sesión cargada (${masterData.length} filas).`);
-    }catch(err){notif("Error al importar JSON.", true);}
+    }catch(err){notif("Error al importar JSON: "+err, true);}
   };
   reader.readAsText(f); input.value="";
 }
