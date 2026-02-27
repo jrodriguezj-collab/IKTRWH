@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ruteador IKEA v8</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+/* vars inlined */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;background:#0d1117;color:#e6edf3;height:100vh;overflow:hidden;font-size:13px;}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,#003A8C,#0051BA 55%,#1a6dd4);padding:0 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FFDA1A;height:52px;flex-shrink:0;}
+.header-left{display:flex;align-items:center;gap:12px;}
+.header h1{font-size:15px;font-weight:700;letter-spacing:1.5px;color:#FFDA1A;text-transform:uppercase;}
+.header-sub{font-size:10px;color:rgba(255,255,255,.45);letter-spacing:.5px;}
+.header-actions{display:flex;gap:7px;align-items:center;}
+
+/* NOTIF */
+#notif{display:none;position:fixed;top:60px;right:18px;z-index:9999;padding:9px 15px;border-radius:6px;font-weight:600;font-size:12px;max-width:320px;animation:sIn .18s ease;box-shadow:0 8px 24px rgba(0,0,0,.5);}
+@keyframes sIn{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
+.notif-ok{background:rgba(63,185,80,.12);color:#3fb950;border:1px solid #3fb950;}
+.notif-err{background:rgba(248,81,73,.15);color:#ff7b72;border:1px solid #f85149;}
+
+/* LAYOUT */
+.app{display:flex;height:calc(100vh - 52px);}
+
+/* SIDEBAR */
+.sidebar{width:280px;min-width:280px;background:#161b22;border-right:1px solid #30363d;overflow-y:auto;display:flex;flex-direction:column;}
+.sb-title{padding:9px 12px 3px;font-size:9px;font-weight:700;letter-spacing:2px;color:#656d76;text-transform:uppercase;}
+
+/* MODULE */
+.module{border-bottom:1px solid #30363d;}
+.module-header{padding:8px 13px;font-weight:600;font-size:12px;cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center;transition:background .12s;color:#8b949e;}
+.module-header:hover{background:#1c2128;color:#e6edf3;}
+.chev{font-size:8px;transition:transform .2s;color:#656d76;}
+.chev.open{transform:rotate(180deg);}
+.mod-body{display:none;flex-direction:column;gap:7px;padding:11px 13px 13px;border-top:1px solid #30363d;}
+.lbl{font-size:9px;font-weight:700;color:#656d76;text-transform:uppercase;letter-spacing:.5px;}
+
+/* FORMS */
+textarea,input[type="text"]{width:100%;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;font-size:11px;padding:6px 8px;resize:vertical;transition:border-color .12s;}
+textarea{height:65px;}
+textarea:focus,input[type="text"]:focus{outline:none;border-color:#0051BA;}
+input[type="file"]{width:100%;background:#1c2128;border:1px dashed #3d444d;border-radius:6px;color:#8b949e;font-size:11px;padding:5px 7px;cursor:pointer;}
+input[type="file"]:hover{border-color:#0051BA;}
+
+/* BUTTONS */
+button{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-weight:600;font-size:12px;border:none;border-radius:6px;cursor:pointer;padding:6px 11px;transition:all .12s;display:inline-flex;align-items:center;gap:5px;}
+.bp{background:#0051BA;color:#fff;}.bp:hover{background:#1a6dd4;transform:translateY(-1px);}
+.bs{background:#FFDA1A;color:#111;}.bs:hover{background:#e6c400;}
+.bd{background:#f85149;color:#fff;}.bd:hover{background:#b22c2a;}
+.bg{background:transparent;color:#8b949e;border:1px solid #30363d;}.bg:hover{background:#22272e;color:#e6edf3;}
+.bgr{background:#3fb950;color:#0d1117;}.bgr:hover{filter:brightness(1.1);}
+.bfull{width:100%;justify-content:center;}
+.bsm{padding:4px 8px;font-size:11px;}
+.bdel{background:transparent;color:#f85149;border:none;padding:1px 4px;font-size:12px;line-height:1;}
+.bdel:hover{background:rgba(248,81,73,.15);border-radius:3px;}
+.btpl{background:linear-gradient(135deg,#0d47a1,#1a6dd4);color:#fff;width:100%;justify-content:center;margin-bottom:5px;box-shadow:0 2px 8px rgba(0,81,186,.3);}
+.btpl:hover{filter:brightness(1.12);transform:translateY(-1px);}
+
+/* MAIN */
+.main-panel{flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0;}
+
+/* TABS */
+.tabs{display:flex;background:#161b22;border-bottom:1px solid #30363d;padding:0 14px;gap:1px;flex-shrink:0;}
+.tab{padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer;color:#8b949e;border-bottom:2px solid transparent;transition:all .12s;white-space:nowrap;display:flex;align-items:center;gap:4px;}
+.tab:hover{color:#e6edf3;}
+.tab.active{color:#FFDA1A;border-bottom-color:#FFDA1A;}
+.tbadge{background:#0051BA;color:#fff;font-size:9px;font-weight:700;border-radius:10px;padding:1px 5px;min-width:18px;text-align:center;}
+
+.tp{display:none;flex:1;overflow:hidden;flex-direction:column;padding:12px 14px;gap:9px;}
+.tp.active{display:flex;}
+
+/* ── STATS ── */
+.stats-bar{display:flex;gap:7px;flex-wrap:wrap;flex-shrink:0;}
+.stat{background:#1c2128;border:1px solid #30363d;border-radius:6px;padding:7px 13px;}
+.stat-val{font-size:20px;font-weight:700;color:#FFDA1A;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;line-height:1;}
+.stat-label{font-size:9px;color:#656d76;text-transform:uppercase;letter-spacing:.5px;}
+
+/* ── ACTIVE FILTERS BAR ── */
+.active-filters-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-height:24px;}
+.fchip{background:rgba(0,81,186,.22);border:1px solid rgba(0,81,186,.45);color:#7bb8ff;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:600;display:inline-flex;align-items:center;gap:5px;cursor:pointer;transition:background .1s;}
+.fchip:hover{background:rgba(218,54,51,.2);border-color:#f85149;color:#ff7b72;}
+.fchip-col{color:rgba(255,218,26,.7);font-size:9px;}
+.no-filters{font-size:11px;color:#656d76;font-style:italic;}
+
+/* ── TABLE CONTAINER ── */
+.table-container{flex:1;overflow:auto;border:1px solid #30363d;border-radius:8px;background:#161b22;position:relative;}
+
+/* ── TABLE ── */
+table{width:100%;border-collapse:collapse;font-size:11px;}
+thead{position:sticky;top:0;z-index:10;}
+th{background:#22272e;border:1px solid #30363d;padding:0;white-space:nowrap;user-select:none;}
+.th-inner{display:flex;align-items:center;justify-content:space-between;padding:6px 9px;gap:4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.4px;}
+.th-filter-btn{display:flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:3px;background:transparent;border:none;cursor:pointer;color:#656d76;font-size:10px;flex-shrink:0;transition:all .1s;padding:0;}
+.th-filter-btn:hover{background:#3d444d;color:#e6edf3;}
+.th-filter-btn.active{background:rgba(0,81,186,.35);color:#FFDA1A;}
+td{border:1px solid #30363d;padding:5px 8px;color:#e6edf3;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;}
+tbody tr:hover td{background:rgba(255,255,255,.025);}
+.editable{cursor:text;}
+.editable:hover{background:rgba(255,218,26,.06)!important;outline:1px dashed rgba(255,218,26,.4);}
+.editable:focus{background:rgba(255,218,26,.1)!important;outline:2px solid #0051BA;}
+.dup-row td{background:rgba(218,54,51,.1)!important;}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:180px;color:#656d76;gap:10px;font-size:13px;}
+.empty-state span{font-size:30px;}
+.btn-new-grid{display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:#22272e;border:2px dashed #3d444d;color:#656d76;font-size:28px;cursor:pointer;transition:all .18s;line-height:1;}
+.btn-new-grid:hover{border-color:#0051BA;color:#0051BA;background:rgba(0,81,186,.08);transform:scale(1.07);}
+.empty-label{font-size:12px;color:#656d76;}
+
+/* ── COLUMN FILTER POPUP ── */
+.col-filter-popup{
+  position:fixed;
+  background:#1c2128;
+  border:1px solid #3d444d;
+  border-radius:8px;
+  box-shadow:0 12px 32px rgba(0,0,0,.6);
+  z-index:1000;
+  width:230px;
+  display:none;
+  flex-direction:column;
+  overflow:hidden;
+}
+.col-filter-popup.open{display:flex;}
+.cfp-head{padding:10px 12px 8px;border-bottom:1px solid #30363d;display:flex;flex-direction:column;gap:6px;}
+.cfp-title{font-size:11px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;}
+.cfp-search{background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;font-size:11px;padding:5px 8px;width:100%;}
+.cfp-search:focus{outline:none;border-color:#0051BA;}
+.cfp-actions{display:flex;gap:5px;}
+.cfp-list{max-height:220px;overflow-y:auto;padding:4px 0;}
+.cfp-item{display:flex;align-items:center;gap:8px;padding:5px 12px;cursor:pointer;font-size:12px;transition:background .08s;}
+.cfp-item:hover{background:#22272e;}
+.cfp-item input[type="checkbox"]{accent-color:#0051BA;flex-shrink:0;}
+.cfp-item label{cursor:pointer;color:#e6edf3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;}
+.cfp-item.blank label{color:#656d76;font-style:italic;}
+.cfp-footer{padding:8px 12px;border-top:1px solid #30363d;display:flex;gap:5px;}
+
+/* ── EXPORT / PLANTILLAS ── */
+.card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:13px;display:flex;flex-direction:column;gap:9px;}
+.card-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#8b949e;}
+.chk-grid{display:flex;flex-wrap:wrap;gap:5px;}
+.chk-pill{display:flex;align-items:center;gap:4px;background:#1c2128;border:1px solid #30363d;border-radius:20px;padding:3px 9px;font-size:11px;cursor:pointer;transition:all .12s;user-select:none;}
+.chk-pill input{accent-color:#0051BA;}
+.chk-pill:has(input:checked){background:rgba(0,81,186,.2);border-color:#0051BA;color:#7bb8ff;}
+textarea[readonly]{background:#1c2128;color:#8b949e;cursor:default;}
+.export-row{display:flex;gap:10px;flex:1;min-height:0;}
+
+/* EYR result */
+.eyr-result{background:#1c2128;border:1px solid #30363d;border-radius:6px;padding:9px;display:none;flex-direction:column;gap:5px;}
+.eyr-result.vis{display:flex;}
+
+/* Proyectos */
+.proy-info{background:rgba(0,81,186,.08);border:1px solid rgba(0,81,186,.22);border-radius:6px;padding:9px 13px;font-size:11px;color:#7bb8ff;line-height:1.55;}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#3d444d;border-radius:3px;}
+hr{border:none;border-top:1px solid #30363d;}
+
+/* ── QUICK ENTRY BAR ── */
+/* ── GRID SPREADSHEET ── */
+.grid-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;border:1px solid #30363d;border-radius:8px;background:#161b22;position:relative;}
+.grid-scroll{flex:1;overflow:auto;}
+.grid-table{border-collapse:collapse;min-width:100%;}
+.grid-table th{background:#22272e;border:1px solid #30363d;padding:0;white-space:nowrap;user-select:none;position:sticky;top:0;z-index:10;}
+.grid-th-inner{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;gap:4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.4px;}
+.grid-table td{border:1px solid #30363d;padding:0;min-width:90px;}
+.grid-cell{display:block;padding:5px 8px;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;font-size:11px;color:#e6edf3;outline:none;min-height:26px;width:100%;white-space:nowrap;}
+.grid-cell:focus{background:rgba(0,81,186,.12);outline:2px solid #0051BA;outline-offset:-2px;}
+.grid-table tbody tr:hover td .grid-cell:not(:focus){background:rgba(255,255,255,.02);}
+.grid-table .dup-row td{background:rgba(218,54,51,.08)!important;}
+/* add-col th */
+.th-addcol{background:#1c2128!important;border:1px solid #30363d!important;min-width:32px;white-space:nowrap;}
+.btn-addcol{width:100%;height:100%;background:transparent;border:none;color:#656d76;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:6px 8px;transition:all .12s;gap:4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;font-weight:600;}
+.btn-addcol:hover{color:#0051BA;background:rgba(0,81,186,.1);}
+.addcol-form{display:flex;align-items:center;gap:4px;padding:2px 6px;}
+.addcol-input{background:#0d1117;border:1px solid #0051BA;border-radius:4px;color:#e6edf3;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;font-size:11px;padding:3px 6px;outline:none;width:100px;}
+.addcol-confirm{background:#0051BA;color:#fff;border:none;border-radius:4px;padding:3px 7px;font-size:11px;font-weight:700;cursor:pointer;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;}
+.addcol-confirm:hover{background:#1a6dd4;}
+.addcol-cancel{background:transparent;color:#656d76;border:none;padding:3px 5px;font-size:12px;cursor:pointer;}
+/* add-row td */
+.tr-addrow td{border:1px solid #30363d;background:#1c2128;}
+.btn-addrow{width:100%;background:transparent;border:none;color:#656d76;font-size:11px;font-weight:600;cursor:pointer;padding:5px 8px;text-align:left;display:flex;align-items:center;gap:4px;transition:all .12s;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;}
+.btn-addrow:hover{color:#0051BA;}
+/* del row btn */
+.td-del{width:26px;min-width:26px;border:1px solid #30363d;text-align:center;}
+.col-name-input{background:transparent;border:none;color:#8b949e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;outline:none;width:100%;min-width:60px;}
+.col-name-input:focus{color:#FFDA1A;}
+</style>
+
+</head>
+<body>
+
+<!-- HEADER -->
+
+<div class="header">
+  <div class="header-left">
+    <span style="font-size:20px">🚛</span>
+    <div><h1>Rutear Postventa IKEA</h1><div class="header-sub">Sistema de Gestión de Rutas</div></div>
+  </div>
+  <div class="header-actions">
+    <button class="bg bsm" onclick="exportarExcel()">⬇️ Excel</button>
+    <button class="bgr bsm" onclick="exportarJSON()">💾 Guardar JSON</button>
+    <label class="bg bsm" style="cursor:pointer">📂 Cargar JSON<input type="file" id="file-json" accept=".json" style="display:none" onchange="importarJSON(this)"></label>
+    <button class="bd bsm" onclick="borrarTodo()">🗑️ Limpiar</button>
+  </div>
+</div>
+
+<div id="notif"></div>
+
+<!-- COLUMN FILTER POPUP (singleton) -->
+
+<div class="col-filter-popup" id="cfp">
+  <div class="cfp-head">
+    <div class="cfp-title" id="cfp-title">Filtrar columna</div>
+    <div style="display:flex;gap:4px;margin-bottom:2px">
+      <button class="bp bsm" style="flex:1;font-size:10px" onclick="cfpSort('asc')">A → Z</button>
+      <button class="bp bsm" style="flex:1;font-size:10px" onclick="cfpSort('desc')">Z → A</button>
+      <button class="bg bsm" style="flex:1;font-size:10px" onclick="cfpSort(null)">✕ Orden</button>
+    </div>
+    <input class="cfp-search" id="cfp-search" placeholder="Buscar..." oninput="cfpSearch(this.value)">
+    <div class="cfp-actions">
+      <button class="bp bsm" style="flex:1" onclick="cfpSelAll(true)">✓ Todas</button>
+      <button class="bg bsm" style="flex:1" onclick="cfpSelAll(false)">✕ Ninguna</button>
+    </div>
+  </div>
+  <div class="cfp-list" id="cfp-list"></div>
+  <div class="cfp-footer">
+    <button class="bp bsm" style="flex:1" onclick="cfpApply()">Aplicar</button>
+    <button class="bg bsm" style="flex:1" onclick="cfpClose()">Cancelar</button>
+  </div>
+</div>
+
+<div class="app">
+<!-- ════ SIDEBAR ════ -->
+<div class="sidebar">
+  <div class="sb-title">Módulos de carga</div>
+
+  <div class="module">
+    <div class="module-header" onclick="toggleMod('m1',this)"><span>📦 Repites</span><span class="chev open">▲</span></div>
+    <div class="mod-body" id="m1" style="display:flex">
+      <div class="lbl">Pega tabla Excel</div>
+      <textarea id="txt-repites" placeholder="Ctrl+V desde Excel..."></textarea>
+      <button class="bp bfull" onclick="procesarRepites()">▶ Cargar Repites</button>
+    </div>
+  </div>
+
+  <div class="module">
+    <div class="module-header" onclick="toggleMod('m2',this)"><span>↩️ Retiros</span><span class="chev">▲</span></div>
+    <div class="mod-body" id="m2">
+      <div class="lbl">Pega tabla Excel</div>
+      <textarea id="txt-retiros" placeholder="Ctrl+V desde Excel..."></textarea>
+      <button class="bp bfull" onclick="procesarRetiros()">▶ Cargar Retiros</button>
+    </div>
+  </div>
+
+  <div class="module">
+    <div class="module-header" onclick="toggleMod('m3',this)"><span>🔄 Envío y Retiro</span><span class="chev">▲</span></div>
+    <div class="mod-body" id="m3">
+      <div class="lbl">Paso 1 · Pega tabla con ASO Generada</div>
+      <textarea id="txt-eyr-imp" placeholder="Ctrl+V desde Excel..."></textarea>
+      <button class="bp bfull" onclick="procesarEyR_Paso1()">Importar ISOs</button>
+      <div class="eyr-result" id="eyr-box">
+        <div class="lbl">ASOs Generadas separadas por coma</div>
+        <textarea id="eyr-asos" readonly style="height:48px;"></textarea>
+        <button class="bs bsm" onclick="cpTexto('eyr-asos')">📋 Copiar ASOs</button>
+      </div>
+      <hr>
+      <div class="lbl">Paso 2 · Archivo cruce de Origen</div>
+      <input type="file" id="file-eyr-cruce" accept=".csv,.xlsx,.xls">
+      <button class="bs bfull" onclick="procesarEyR_Paso2()">⚡ Cruzar Orígenes</button>
+    </div>
+  </div>
+
+  <div class="module">
+    <div class="module-header" onclick="toggleMod('m5',this)"><span>🔁 Cruce Vehículos</span><span class="chev">▲</span></div>
+    <div class="mod-body" id="m5">
+      <div style="background:rgba(240,136,62,.08);border:1px solid rgba(240,136,62,.28);border-radius:6px;padding:7px 9px;font-size:11px;color:#f0883e;line-height:1.5;">
+        <b>Plan:</b> col <b>Título</b> (=ISO) + <b>Vehículo</b> (=veh inicial)<br>
+        <b>Conversión:</b> <b>VEH INICIAL</b> → <b>VEH FINAL</b><br>
+        Resultado → columna <b>DESTINO</b>
+      </div>
+      <div class="lbl">Archivo Plan</div>
+      <input type="file" id="file-cond" accept=".csv,.xlsx,.xls">
+      <div class="lbl">Archivo Conversión</div>
+      <input type="file" id="file-conv" accept=".csv,.xlsx,.xls">
+      <button class="bd bfull" onclick="procesarConductoresArchivos()">⚡ Realizar Cruce</button>
+    </div>
+  </div>
+
+  <div class="module">
+    <div class="module-header" onclick="toggleMod('m6',this)"><span>🏗️ Proyectos Leslie</span><span class="chev">▲</span></div>
+    <div class="mod-body" id="m6">
+      <input type="file" id="file-proyectos" accept=".csv,.xlsx,.xls">
+      <button class="bp bfull" onclick="procesarProyectos()">▶ Procesar</button>
+    </div>
+  </div>
+
+  <div class="module">
+    <div class="module-header" onclick="toggleMod('m7',this)"><span>📌 K8</span><span class="chev">▲</span></div>
+    <div class="mod-body" id="m7">
+      <div class="lbl">Pega ISOs (una por línea o separadas por espacio)</div>
+      <textarea id="txt-k8" placeholder="ISO1245&#10;ISO123124&#10;..."></textarea>
+      <button class="bp bfull" onclick="procesarK8()">▶ Cargar K8</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MAIN ════ -->
+
+<div class="main-panel">
+  <div class="tabs">
+    <div class="tab active" id="tab-dashboard-btn" onclick="aTab('tab-dashboard',this)">📊 Dashboard <span class="tbadge" id="badge-total">0</span></div>
+    <div class="tab" id="tab-export-btn" onclick="aTab('tab-export',this)">📋 Exportar</div>
+    <div class="tab" id="tab-plantillas-btn" onclick="aTab('tab-plantillas',this)">✉️ Plantillas</div>
+    <div class="tab" id="tab-proyectos-btn" onclick="aTab('tab-proyectos',this)">🏗️ Proyectos</div>
+    <div class="tab" id="tab-dupcheck-btn" onclick="aTab('tab-dupcheck',this)">🔍 Revisar Duplicados</div>
+    <div class="tab" id="tab-ruteo-btn" onclick="aTab('tab-ruteo',this)">📁 Archivo Ruteo</div>
+  </div>
+
+  <!-- DASHBOARD -->
+
+  <div class="tp active" id="tab-dashboard">
+    <div style="display:flex;align-items:flex-start;gap:7px;">
+      <div class="stats-bar" id="stats-bar" style="flex:1"></div>
+      <button class="bg bsm" onclick="refresh()" title="Refrescar" style="flex-shrink:0;height:36px;padding:0 10px;font-size:13px;">⟳</button>
+    </div>
+
+```
+<!-- Active filters bar -->
+<div class="active-filters-bar" id="active-filters-bar">
+  <span class="no-filters">Sin filtros activos — haz clic en ▼ de cualquier columna para filtrar</span>
+</div>
+
+<!-- GRID SPREADSHEET -->
+<div class="grid-wrap" id="grid-wrap">
+  <div class="grid-scroll" id="grid-scroll">
+    <div class="empty-state" id="grid-empty">
+      <button class="btn-new-grid" onclick="crearNuevaDashboard()" title="Crear nueva tabla">＋</button>
+      <span class="empty-label">Crea una tabla nueva o carga datos desde el sidebar</span>
+    </div>
+  </div>
+</div>
+```
+
+  </div>
+
+  <!-- EXPORTAR -->
+
+  <div class="tp" id="tab-export">
+    <div class="export-row">
+      <div class="card" style="flex:1">
+        <div class="card-title">📋 Copiar Tabla</div>
+        <div class="lbl">Columnas a incluir</div>
+        <div class="chk-grid" id="chk-columns"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="bs" onclick="copiarTabla()">📋 Copiar Tabla</button>
+          <button class="bg bsm" onclick="selAll(true)">✓ Todas</button>
+          <button class="bg bsm" onclick="selAll(false)">✕ Ninguna</button>
+        </div>
+        <hr>
+        <div class="card-title">⬇️ Exportar</div>
+        <div style="display:flex;gap:6px">
+          <button class="bg bsm" onclick="exportarExcel()">⬇️ .xlsx</button>
+          <button class="bgr bsm" onclick="exportarJSON()">💾 .json</button>
+        </div>
+      </div>
+      <div class="card" style="flex:1">
+        <div class="card-title">📝 ISOs de la vista actual</div>
+        <textarea id="out-isos" readonly placeholder="ISOs separadas por coma..."></textarea>
+        <button class="bs bsm" onclick="cpTexto('out-isos')">📝 Copiar ISOs</button>
+        <hr>
+        <div class="card-title">📊 Resumen por Gestión</div>
+        <div id="resumen-gest" style="font-size:11px;color:#8b949e;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;line-height:1.7;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLANTILLAS -->
+
+  <div class="tp" id="tab-plantillas">
+    <div class="card">
+      <div class="card-title">✉️ Plantillas de Correo — Aptos 12pt</div>
+      <p style="font-size:11px;color:#8b949e;line-height:1.5">Copia el cuerpo completo (texto + tabla) y pégalo directo en Outlook.</p>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        <button class="btpl" style="flex:1;min-width:150px" onclick="copiarPlantilla('repites')">✉️ REPITES</button>
+        <button class="btpl" style="flex:1;min-width:150px" onclick="copiarPlantilla('pv')">✉️ POST VENTA</button>
+        <button class="btpl" style="flex:1;min-width:150px;background:linear-gradient(135deg,#1a5c3a,#2d8a5a)" onclick="copiarPlantilla('leslie')">✉️ PROYECTOS LESLIE</button>
+      </div>
+    </div>
+    <div class="card" style="flex:1;overflow:auto">
+      <div class="card-title">👁️ Vista Previa</div>
+      <div id="preview-plantilla" style="font-size:12px;color:#8b949e;font-style:italic;line-height:1.6">Genera una plantilla para ver la vista previa aquí.</div>
+    </div>
+  </div>
+
+  <!-- PROYECTOS -->
+
+  <div class="tp" id="tab-proyectos">
+    <div class="proy-info" id="proy-info">
+      <b>🏗️ Proyectos Leslie</b> — Carga el archivo desde el módulo 6 en el sidebar.
+    </div>
+    <div class="table-container" id="table-proyectos">
+      <div class="empty-state"><span>🏗️</span>Carga el archivo de proyectos</div>
+    </div>
+  </div>
+
+  <!-- REVISAR DUPLICADOS -->
+
+  <div class="tp" id="tab-dupcheck">
+    <div style="display:flex;align-items:center;gap:9px;flex-shrink:0;">
+      <input type="file" id="file-pv-plan2" accept=".csv,.xlsx,.xls" style="flex:1">
+      <button class="bp" style="white-space:nowrap" onclick="procesarPVDuplicadas()">🔍 Cargar y Revisar</button>
+    </div>
+    <div class="table-container" id="table-dupcheck">
+      <div class="empty-state"><span>🔍</span>Carga el archivo Plan para revisar VEH01 Postventa</div>
+    </div>
+  </div>
+
+  <!-- ARCHIVO RUTEO -->
+
+  <div class="tp" id="tab-ruteo">
+    <div class="card">
+      <div class="card-title">📁 Cruce de Archivo de Ruteo</div>
+      <p style="font-size:11px;color:#8b949e;line-height:1.6">
+        Sube el archivo de ruteo. Se cruzan las ISOs con el dashboard, se rellena <b>ID_REFERENCIA</b> con el valor de <b>GESTIÓN</b>, y <b>FECHA_PROGRAMADA</b> con la fecha de mañana. Se exporta como <b>ISOS RUTEO.xlsx</b>.
+      </p>
+      <input type="file" id="file-ruteo" accept=".csv,.xlsx,.xls">
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:4px">
+        <button class="bp" style="flex:1" onclick="procesarArchivoRuteo()">⚡ Procesar y Exportar</button>
+      </div>
+      <div id="ruteo-result" style="display:none;margin-top:8px;background:rgba(63,185,80,.12);border:1px solid #3fb950;border-radius:6px;padding:9px 12px;font-size:11px;color:#3fb950;line-height:1.7;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- CLOSE POPUP ON OUTSIDE CLICK -->
+
+<script>
+document.addEventListener('mousedown', e => {
+  const popup = document.getElementById('cfp');
+  if (popup.classList.contains('open') && !popup.contains(e.target) && !e.target.closest('.th-filter-btn')) {
+    cfpClose();
+  }
+});
+</script>
+
+<script>
+// ══════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════
+const COLS_BASE = ['ISO','GESTIÓN','ORIGEN','DESTINO','VEH','CORREO REPITES','COMENTARIO_RAW'];
+const COLS_DEFAULT_VIS = new Set(['ISO','GESTIÓN','ORIGEN','DESTINO','VEH']);
+let COLS = [...COLS_BASE]; // mutable for dynamic columns
+let masterData = [];
+let filteredData = [];
+let proyectosData = [];
+let colsVisible = new Set(COLS_DEFAULT_VIS);
+let extraCols = []; // user-added columns
+
+// colFilters: { colName: Set<string> | null }
+// null = no filter on that col; Set = allowed values
+let colFilters = {};
+let pvPlanData = []; // ISOs VEH01 Postventa del plan cargado
+
+// CFP (column filter popup) state
+let cfp_col = null;         // which column is being filtered
+let cfp_all = [];           // all unique values for that col
+let cfp_pending = new Set();// selection in progress (before Apply)
+let cfp_btn_el = null;      // the th-filter-btn that opened it
+
+// Sort state
+let sortCol = null;
+let sortDir = null; // 'asc' | 'desc' | null
+
+// ══════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════
+const gid = id => document.getElementById(id);
+const genId = () => Math.random().toString(36).substr(2,9);
+const sanH = h => h.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+
+function toTCVeh(s) {
+  if (!s) return s;
+  const u = s.trim().toUpperCase();
+  if (u === 'POST VENTA 3') return 'Post Venta 3';
+  if (/^VEH01\s*POST\s*VENTA/.test(u)) return 'VEH01 Postventa';
+  if (/^VEH02\s*POST\s*VENTA/.test(u)) return 'VEH02 Postventa';
+  if (/^VEH01\s*POSTVENTA/.test(u)) return 'VEH01 Postventa';
+  if (/^VEH02\s*POSTVENTA/.test(u)) return 'VEH02 Postventa';
+  return s;
+}
+
+function fmtDate(d) {
+  const days=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const months=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  return `${days[d.getDay()]} ${d.getDate()} de ${months[d.getMonth()]} de ${d.getFullYear()}`;
+}
+
+function notif(msg, err=false) {
+  const el = gid('notif');
+  el.className = err ? 'notif-err' : 'notif-ok';
+  el.innerText = msg; el.style.display='block';
+  clearTimeout(el._t); el._t = setTimeout(()=>el.style.display='none', 4500);
+}
+
+function cpTexto(id) {
+  const el=gid(id); if(!el.value) return;
+  el.select(); document.execCommand('copy'); notif('📋 Copiado.');
+}
+
+function aTab(id, btn) {
+  document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  gid(id).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+function toggleMod(id, hdr) {
+  const el=gid(id), chev=hdr.querySelector('.chev');
+  const open = el.style.display!=='none'&&el.style.display!=='';
+  el.style.display=open?'none':'flex';
+  chev.classList.toggle('open',!open);
+}
+
+function borrarTodo() {
+  if(!confirm('¿Borrar todos los datos?')) return;
+  masterData=[]; colFilters={};
+  refresh(); notif('BBDD limpiada.');
+}
+
+// ══════════════════════════════════════
+//  PARSEO
+// ══════════════════════════════════════
+function parseTSV(tsv) {
+  const lines=tsv.trim().split('\n');
+  if(lines.length<2) return null;
+  const headers=lines[0].split('\t').map(sanH);
+  return lines.slice(1).map(l=>{
+    const v=l.split('\t'), r={};
+    headers.forEach((h,i)=>{ r[h]=v[i]?v[i].trim().toUpperCase().replace("NAN",""):""; });
+    return r;
+  });
+}
+
+function leerArchivo(file) {
+  return new Promise((res,rej)=>{
+    const reader=new FileReader(), name=file.name.toLowerCase();
+    if(name.endsWith('.csv')){
+      reader.onload=e=>{
+        const lines=e.target.result.trim().split('\n');
+        const headers=lines[0].split(',').map(sanH);
+        res(lines.slice(1).map(l=>{
+          const v=l.split(','), r={};
+          headers.forEach((h,i)=>{r[h]=v[i]?v[i].trim().toUpperCase():"";});
+          return r;
+        }));
+      }; reader.readAsText(file);
+    } else {
+      reader.onload=e=>{
+        try{
+          const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+          const ws=wb.Sheets[wb.SheetNames[0]];
+          const json=XLSX.utils.sheet_to_json(ws,{defval:""});
+          res(json.map(row=>{const r={};for(const k in row)r[sanH(k)]=row[k].toString().trim().toUpperCase();return r;}));
+        }catch(err){rej("Archivo Excel inválido.");}
+      }; reader.readAsArrayBuffer(file);
+    }
+  });
+}
+
+// ══════════════════════════════════════
+//  MÓDULOS CARGA
+// ══════════════════════════════════════
+function procesarRepites(){
+  const rows=parseTSV(gid('txt-repites').value);
+  if(!rows) return notif("Pega tabla válida.", true);
+  let added=0;
+  rows.forEach(r=>{
+    const iso=r['ISO']; if(!iso) return;
+    const com=r['COMENTARIO']||r['COMENTARIOS']||"";
+    const veh=r['VEH']||r['VEHICULO']||"";
+    const ori=r['ORIGEN']||"";
+    let g="REPITE";
+    if(veh){
+      const eyr=(com.includes("ENVIO")&&com.includes("RETIRO"))||com.includes("ENVIO Y RETIRO");
+      const solo=com.includes("SOLO ENVIO")||com.includes("SOLO ENVÍO");
+      if(veh.includes("PROYECTO LESLIE")) g="REPITE PROYECTO";
+      else if(veh.includes("LESLIE")) g=eyr?"ENVIO Y RETIRO":solo?"SOLO ENVIO":"REPITE LESLIE";
+      else { if(eyr) g="ENVIO Y RETIRO"; else if(solo) g="SOLO ENVIO"; }
+    }
+    masterData.push({_id:genId(),ISO:iso,'GESTIÓN':g,ORIGEN:ori,DESTINO:'',VEH:veh,'CORREO REPITES':'SI',COMENTARIO_RAW:com});
+    added++;
+  });
+  gid('txt-repites').value=""; refresh(); notif(`✅ ${added} Repites.`);
+}
+
+function procesarRetiros(){
+  const rows=parseTSV(gid('txt-retiros').value);
+  if(!rows) return notif("Tabla inválida.", true);
+  const cIso=Object.keys(rows[0]).find(k=>k.includes("ISO"));
+  if(!cIso) return notif("Falta columna ISO.", true);
+  const seen=new Set(); let added=0,dups=0;
+  rows.forEach(r=>{
+    const iso=r[cIso]; if(!iso) return;
+    if(seen.has(iso)){dups++;return;}
+    seen.add(iso);
+    masterData.push({_id:genId(),ISO:iso,'GESTIÓN':'RETIRO',ORIGEN:'RETIRO',DESTINO:'',VEH:'','CORREO REPITES':'',COMENTARIO_RAW:''});
+    added++;
+  });
+  gid('txt-retiros').value=""; refresh(); notif(`✅ ${added} Retiros.${dups?` (${dups} dup.ignorados)`:''}`);
+}
+
+function procesarEyR_Paso1(){
+  const rows=parseTSV(gid('txt-eyr-imp').value);
+  if(!rows) return notif("Tabla inválida.", true);
+  const col=Object.keys(rows[0]).find(k=>k.includes("ASO GENERADA"))||Object.keys(rows[0]).find(k=>k.includes("ASO")||k.includes("ISO"));
+  if(!col) return notif("Falta columna ASO/ISO.", true);
+  let added=0; const asos=[];
+  rows.forEach(r=>{ if(r[col]){ masterData.push({_id:genId(),ISO:r[col],'GESTIÓN':'ENVIO Y RETIRO',ORIGEN:'PENDIENTE',DESTINO:'',VEH:'','CORREO REPITES':'',COMENTARIO_RAW:''}); asos.push(r[col]); added++; } });
+  gid('txt-eyr-imp').value="";
+  const box=gid('eyr-box'); box.classList.add('vis'); gid('eyr-asos').value=asos.join(',');
+  refresh(); notif(`✅ ${added} ISOs. ASOs listas para copiar.`);
+}
+
+async function procesarEyR_Paso2(){
+  const f=gid('file-eyr-cruce').files[0]; if(!f) return notif("Falta archivo.", true);
+  try{
+    const rows=await leerArchivo(f);
+    const cIso=Object.keys(rows[0]).find(k=>k.includes("ISO"));
+    const cOri=Object.keys(rows[0]).find(k=>k.includes("RTE")||k.includes("ORIGEN"));
+    if(!cIso||!cOri) return notif("Faltan columnas ISO/Origen.", true);
+    const map={}; rows.forEach(r=>{if(r[cIso]) map[r[cIso].trim().toUpperCase()]=r[cOri].trim().toUpperCase();});
+    let upd=0; masterData.forEach(m=>{if(m.ORIGEN==='PENDIENTE'&&map[m.ISO]){m.ORIGEN=map[m.ISO];upd++;}});
+    gid('file-eyr-cruce').value=""; refresh(); notif(`✅ ${upd} Orígenes cruzados.`);
+  }catch(e){notif("Error: "+e, true);}
+}
+
+function procesarManual(){
+  // legacy stub — now handled by agregarFila() in the grid
+  agregarFila();
+}
+
+async function procesarConductoresArchivos(){
+  const fC=gid('file-cond').files[0], fV=gid('file-conv').files[0];
+  if(!fC||!fV) return notif("Faltan archivos.", true);
+  try{
+    const rC=await leerArchivo(fC), rV=await leerArchivo(fV);
+    const kC=Object.keys(rC[0]);
+    const cTit=kC.find(k=>k==="TITULO"||k==="TÍTULO")||kC.find(k=>k.includes("TITULO")||k.includes("TÍTULO")||k.includes("ISO"));
+    const cVeh=kC.find(k=>k==="VEHICULO"||k==="VEHÍCULO"||k==="VEH")||kC.find(k=>k.includes("VEHICULO")||k.includes("VEHÍCULO"));
+    const kV=Object.keys(rV[0]);
+    const cIni=kV.find(k=>k.includes("INICIAL")||k.includes("INI"));
+    const cFin=kV.find(k=>k.includes("FINAL")||k.includes("FIN"));
+    if(!cTit||!cVeh) return notif(`Plan: no se detectó Título/Vehículo. Cols: ${kC.join(', ')}`, true);
+    if(!cIni||!cFin) return notif(`Conversión: no se detectó VEH INICIAL/FINAL. Cols: ${kV.join(', ')}`, true);
+    const mapConv={}; rV.forEach(r=>{const i=r[cIni]?.trim().toUpperCase(); if(i) mapConv[i]=r[cFin]?.trim().toUpperCase()||i;});
+    const mapFinal={}; rC.forEach(r=>{const t=r[cTit]?.trim().toUpperCase(), v=r[cVeh]?.trim().toUpperCase(); if(t&&v) mapFinal[t]=mapConv[v]||v;});
+    let upd=0, nf=0;
+    masterData.forEach(m=>{const k=m.ISO?.trim().toUpperCase(); if(mapFinal[k]){m.DESTINO=mapFinal[k];upd++;} else nf++;});
+    gid('file-cond').value=""; gid('file-conv').value=""; refresh();
+    notif(`✅ ${upd} vehículos asignados.${nf?` (${nf} sin coincidencia)`:''}`);
+  }catch(e){notif("Error: "+e,true);}
+}
+
+async function procesarProyectos(){
+  const f=gid('file-proyectos').files[0]; if(!f) return notif("Falta archivo.", true);
+  try{
+    const rows=await leerArchivo(f); if(!rows.length) return notif("Archivo vacío.", true);
+    const keys=Object.keys(rows[0]);
+    const cCond=keys.find(k=>k.includes("CONDUCTOR"));
+    const cTit=keys.find(k=>k==="TITULO"||k==="TÍTULO")||keys.find(k=>k.includes("TITULO")||k.includes("TÍTULO")||k.includes("ISO"));
+    const cDir=keys.find(k=>k.includes("DIRECCI")||k.includes("DOMICILIO"));
+    if(!cCond||!cTit||!cDir) return notif(`Cols no detectadas: ${keys.join(', ')}`, true);
+    const tieneProyecto=rows.some(r=>(r[cCond]||"").toUpperCase().includes("PROYECTO"));
+    if(tieneProyecto){
+      proyectosData=rows.filter(r=>{const c=(r[cCond]||"").toUpperCase(); return c.includes("FRANCISCO")||c.includes("PROYECTO");})
+        .map(r=>{const c=(r[cCond]||"").toUpperCase(); const veh=c.includes("FRANCISCO")?"VEH98":c.includes("PROYECTO")?"VEH98 Adicional":""; return {_tipo:'dos','VEHÍCULO':veh,ISO:r[cTit]||"",DIRECCIÓN:r[cDir]||""};});
+    } else {
+      proyectosData=rows.filter(r=>(r[cCond]||"").toUpperCase().includes("FRANCISCO"))
+        .map(r=>({_tipo:'uno',ISO:r[cTit]||"",DIRECCIÓN:r[cDir]||""}));
+    }
+    gid('file-proyectos').value=""; renderProyectos();
+    notif(`✅ ${proyectosData.length} filas procesadas.`);
+  }catch(e){notif("Error: "+e,true);}
+}
+
+function renderProyectos(){
+  const cont=gid('table-proyectos');
+  if(!proyectosData.length){cont.innerHTML='<div class="empty-state"><span>🏗️</span>Sin datos</div>';return;}
+  const tipo=proyectosData[0]._tipo;
+  const cols=tipo==='dos'?['VEHÍCULO','ISO','DIRECCIÓN']:['ISO','DIRECCIÓN'];
+  let h=`<table><thead><tr>${cols.map(c=>`<th><div class="th-inner">${c}</div></th>`).join('')}<th><div class="th-inner"></div></th></tr></thead><tbody>`;
+  proyectosData.forEach((r,i)=>{
+    h+=`<tr>${cols.map(c=>`<td>${r[c]||''}</td>`).join('')}<td><button class="bdel" onclick="delProy(${i})">✕</button></td></tr>`;
+  });
+  h+='</tbody></table>'; cont.innerHTML=h;
+  gid('proy-info').innerHTML=tipo==='dos'
+    ?`<b>🏗️ Dos conductores</b> — ${proyectosData.length} filas · VEH98 + VEH98 Adicional`
+    :`<b>🏗️ Un conductor</b> — ${proyectosData.length} filas · ISO + Dirección`;
+}
+function delProy(i){proyectosData.splice(i,1);renderProyectos();}
+
+// ══════════════════════════════════════
+//  COLUMN FILTER POPUP
+// ══════════════════════════════════════
+function openCfp(col, btnEl) {
+  // collect all unique values for this col from masterData
+  const allVals = [...new Set(masterData.map(r=>r[col]??''))].sort((a,b)=>a.localeCompare(b, 'es'));
+  cfp_col = col;
+  cfp_all = allVals;
+  cfp_btn_el = btnEl;
+  // if already filtered, pre-check those; else all checked
+  cfp_pending = colFilters[col] ? new Set(colFilters[col]) : new Set(allVals);
+
+  gid('cfp-title').textContent = `Filtrar: ${col}`;
+  gid('cfp-search').value = '';
+  buildCfpList(allVals);
+
+  // position near button
+  const rect = btnEl.getBoundingClientRect();
+  const popup = gid('cfp');
+  popup.style.top = (rect.bottom + 4) + 'px';
+  let left = rect.left;
+  if (left + 230 > window.innerWidth - 10) left = window.innerWidth - 240;
+  popup.style.left = left + 'px';
+  popup.classList.add('open');
+  gid('cfp-search').focus();
+}
+
+function buildCfpList(vals) {
+  const list = gid('cfp-list');
+  list.innerHTML = vals.map(v => {
+    const chk = cfp_pending.has(v) ? 'checked' : '';
+    const label = v === '' ? '(Vacío)' : v;
+    const isBlank = v === '' ? 'blank' : '';
+    return `<label class="cfp-item ${isBlank}">
+      <input type="checkbox" value="${v.replace(/"/g,'&quot;')}" ${chk} onchange="cfpToggle(this)">
+      <label>${label}</label>
+    </label>`;
+  }).join('');
+}
+
+function cfpToggle(cb) {
+  const v = cb.value;
+  if (cb.checked) cfp_pending.add(v); else cfp_pending.delete(v);
+}
+
+function cfpSearch(q) {
+  const lo = q.toLowerCase();
+  const filtered = cfp_all.filter(v => v.toLowerCase().includes(lo));
+  buildCfpList(filtered);
+}
+
+function cfpSelAll(val) {
+  const q = gid('cfp-search').value.toLowerCase();
+  const filtered = cfp_all.filter(v => v.toLowerCase().includes(q));
+  filtered.forEach(v => { if(val) cfp_pending.add(v); else cfp_pending.delete(v); });
+  buildCfpList(filtered);
+}
+
+function cfpApply() {
+  if (cfp_col === null) return;
+  // if all values selected → remove filter
+  const allVals = [...new Set(masterData.map(r=>r[cfp_col]??''))];
+  if (cfp_pending.size >= allVals.length && allVals.every(v=>cfp_pending.has(v))) {
+    delete colFilters[cfp_col];
+  } else {
+    colFilters[cfp_col] = new Set(cfp_pending);
+  }
+  cfpClose();
+  renderTabla();
+}
+
+function cfpSort(dir) {
+  sortCol = dir ? cfp_col : null;
+  sortDir = dir;
+  // update button states
+  const btns = document.querySelectorAll('#cfp .cfp-head button');
+  btns.forEach(b => b.style.opacity = '1');
+  if(dir==='asc') btns[0].style.background='#FFDA1A', btns[0].style.color='#111';
+  if(dir==='desc') btns[1].style.background='#FFDA1A', btns[1].style.color='#111';
+  cfpApply();
+}
+
+function cfpClose() {
+  gid('cfp').classList.remove('open');
+}
+
+// active filter count per col
+function filterCount(col) {
+  return colFilters[col] ? colFilters[col].size : null;
+}
+
+// ══════════════════════════════════════
+//  RENDER TABLE
+// ══════════════════════════════════════
+function eliminarFila(id){masterData=masterData.filter(r=>r._id!==id);refresh();}
+
+function celdaInput(el){
+  // save live without re-render
+  const id = el.dataset.id, col = el.dataset.col;
+  const f = masterData.find(r=>r._id===id);
+  if(f) f[col] = el.innerText.trim().toUpperCase();
+  actualizarDuplicados();
+}
+
+function actualizarDuplicados(){
+  const conteo={};
+  masterData.forEach(r=>{ if(r.ISO) conteo[r.ISO]=(conteo[r.ISO]||0)+1; });
+  document.querySelectorAll('.grid-table tbody tr[data-id]').forEach(tr=>{
+    const id = tr.dataset.id;
+    const r = masterData.find(r=>r._id===id);
+    if(!r) return;
+    const dup = conteo[r.ISO]>1 && r['GESTIÓN']!=='RETIRO';
+    tr.classList.toggle('dup-row', dup);
+  });
+  // update badge
+  gid('badge-total').textContent = masterData.length;
+  // update stat cards live
+  const gestiones={};
+  masterData.forEach(r=>{ const g=r['GESTIÓN']||''; gestiones[g]=(gestiones[g]||0)+1; });
+  document.querySelectorAll('.stat[data-gest]').forEach(el=>{
+    const g=el.dataset.gest;
+    el.querySelector('.stat-val').textContent = gestiones[g]||0;
+  });
+  const totalEl=document.querySelector('.stat[data-gest="__total__"] .stat-val');
+  if(totalEl) totalEl.textContent=masterData.length;
+}
+
+function guardarEdicion(id,col,el){
+  const f=masterData.find(r=>r._id===id);
+  if(f) f[col]=el.innerText.trim().toUpperCase();
+  // live dup highlight without re-render
+  actualizarDuplicados();
+}
+
+function initColVis(){
+  gid('col-visibility') && (gid('col-visibility').innerHTML = COLS.map(c=>`
+    <label class="chk-pill">
+      <input type="checkbox" ${colsVisible.has(c)?'checked':''} onchange="toggleColVis('${c}',this.checked)"> ${c}
+    </label>`).join(''));
+}
+
+function toggleColVis(col,checked){
+  if(checked) colsVisible.add(col); else colsVisible.delete(col);
+  renderTabla();
+}
+
+function initExportCols(){
+  const def=new Set(['ISO','GESTIÓN','ORIGEN','DESTINO']);
+  gid('chk-columns').innerHTML=COLS.map(c=>`
+    <label class="chk-pill"><input type="checkbox" class="col-chk" value="${c}" ${def.has(c)?'checked':''}> ${c}</label>`).join('');
+}
+
+function selAll(v){document.querySelectorAll('.col-chk').forEach(c=>c.checked=v);}
+
+function applyColFilters(data){
+  let result = data.filter(row => {
+    return Object.entries(colFilters).every(([col, allowed]) => {
+      const val = row[col] ?? '';
+      return allowed.has(val);
+    });
+  });
+  if(sortCol && sortDir){
+    result = [...result].sort((a,b)=>{
+      const va=(a[sortCol]||'').toString().toLowerCase();
+      const vb=(b[sortCol]||'').toString().toLowerCase();
+      return sortDir==='asc' ? va.localeCompare(vb,'es') : vb.localeCompare(va,'es');
+    });
+  }
+  return result;
+}
+
+function renderTabla(){
+  filteredData = applyColFilters(masterData);
+  const scroll = gid('grid-scroll');
+
+  // sync COLS with extraCols
+  COLS = [...COLS_BASE, ...extraCols];
+
+  if(!masterData.length){
+    scroll.innerHTML=`<div id="grid-empty" class="empty-state">
+      <button class="btn-new-grid" onclick="crearNuevaDashboard()" title="Crear nueva tabla">＋</button>
+      <span class="empty-label">Crea una tabla nueva o carga datos desde el sidebar</span>
+    </div>`;
+    gid('out-isos').value=''; updateStats(); updateActiveFiltersBar(); return;
+  }
+  if(!filteredData.length){
+    scroll.innerHTML='<div id="grid-empty" class="empty-state"><span>🔍</span>Sin resultados para los filtros activos</div>';
+    gid('out-isos').value=''; updateStats(); updateActiveFiltersBar(); return;
+  }
+
+  const conteo={};
+  masterData.forEach(r=>{if(r.ISO) conteo[r.ISO]=(conteo[r.ISO]||0)+1;});
+  const visCols = COLS.filter(c => colsVisible.has(c));
+
+  let h = `<table class="grid-table"><thead><tr>`;
+  // # col
+  h += `<th style="width:32px;min-width:32px;position:sticky;top:0;z-index:11;background:#22272e"><div class="grid-th-inner" style="justify-content:center;color:#656d76">#</div></th>`;
+  visCols.forEach(c => {
+    const hasFilter = !!colFilters[c];
+    const cnt = hasFilter ? colFilters[c].size : null;
+    const isSort = sortCol===c;
+    const sortIndicator = isSort ? (sortDir==='asc'?' ↑':' ↓') : '';
+    const btnClass = (hasFilter||isSort) ? 'th-filter-btn active' : 'th-filter-btn';
+    const isExtra = extraCols.includes(c);
+    h += `<th>
+      <div class="grid-th-inner">
+        ${isExtra
+          ? `<input class="col-name-input" value="${c}" onblur="renameCol('${c}',this.value)" onkeydown="if(event.key==='Enter')this.blur()" style="min-width:70px">`
+          : `<span>${c}${sortIndicator}</span>`}
+        <div style="display:flex;align-items:center;gap:2px">
+          <button class="${btnClass}" title="${hasFilter?`Filtro (${cnt})`:'Filtrar / Ordenar'}" onclick="openCfp('${c}',this)">▼${hasFilter?`<span style="font-size:9px">${cnt}</span>`:''}</button>
+          ${isExtra ? `<button class="th-filter-btn" title="Eliminar columna" onclick="eliminarCol('${c}')" style="color:#f85149">✕</button>` : ''}
+        </div>
+      </div>
+    </th>`;
+  });
+  // add-col th
+  h += `<th class="th-addcol" id="th-addcol"><button class="btn-addcol" onclick="mostrarAddColForm()" title="Agregar columna">＋ col</button></th>`;
+  // del col
+  h += `<th style="width:26px;min-width:26px;background:#22272e"></th>`;
+  h += `</tr></thead><tbody>`;
+
+  filteredData.forEach((r, i) => {
+    const dup = (conteo[r.ISO]>1) && (r['GESTIÓN'] !== 'RETIRO');
+    h += `<tr data-id="${r._id}"${dup ? " class='dup-row'" : ""}>`;
+    // row number
+    h += `<td style="text-align:center;color:#656d76;font-size:10px;border:1px solid #30363d;user-select:none;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace">${i+1}</td>`;
+    visCols.forEach(c => {
+      h += `<td><div class="grid-cell" contenteditable="true" data-id="${r._id}" data-col="${c}" oninput="celdaInput(this)" onblur="guardarEdicion('${r._id}','${c}',this)" onkeydown="gridCellKey(event,'${r._id}','${c}')">${r[c]||''}</div></td>`;
+    });
+    // add-col spacer
+    h += `<td style="width:32px;border:1px solid #30363d;background:#1c2128"></td>`;
+    // del
+    h += `<td class="td-del"><button class="bdel" onclick="eliminarFila('${r._id}')">✕</button></td>`;
+    h += `</tr>`;
+  });
+
+  // add-row row
+  const addRowColspan = visCols.length + 3;
+  h += `<tr class="tr-addrow"><td colspan="${addRowColspan}">
+    <button class="btn-addrow" onclick="agregarFila()">＋ Agregar fila</button>
+  </td></tr>`;
+
+  h += `</tbody></table>`;
+  scroll.innerHTML = h;
+  gid('out-isos').value = filteredData.map(r=>r.ISO).filter(Boolean).join(',');
+  updateStats(); updateActiveFiltersBar();
+}
+
+function gridCellKey(e, id, col){
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    e.target.blur();
+    // move to next row same col
+    const rows = document.querySelectorAll('.grid-table tbody tr:not(.tr-addrow)');
+    const cells = [...document.querySelectorAll(`.grid-table tbody tr:not(.tr-addrow) [contenteditable]`)];
+    const idx = cells.indexOf(e.target);
+    const visCols = COLS.filter(c=>colsVisible.has(c));
+    const nextIdx = idx + visCols.length;
+    if(cells[nextIdx]) cells[nextIdx].focus();
+  }
+  if(e.key === 'Tab'){
+    e.preventDefault();
+    const cells = [...document.querySelectorAll('.grid-table tbody tr:not(.tr-addrow) [contenteditable]')];
+    const idx = cells.indexOf(e.target);
+    const next = cells[e.shiftKey ? idx-1 : idx+1];
+    if(next) next.focus();
+  }
+  if(e.key === 'Escape') e.target.blur();
+}
+
+function crearNuevaDashboard(){
+  // Seed one empty row with default visible cols so the grid renders
+  const row = {_id:genId(), ISO:'', 'GESTIÓN':'', ORIGEN:'', DESTINO:'', VEH:'', 'CORREO REPITES':'', COMENTARIO_RAW:''};
+  masterData.push(row);
+  // Ensure default cols are visible
+  colsVisible = new Set(['ISO','GESTIÓN','ORIGEN','DESTINO','CORREO REPITES']);
+  refresh();
+  // Focus first cell
+  setTimeout(()=>{
+    const first = document.querySelector('.grid-cell');
+    if(first) first.focus();
+  }, 40);
+}
+
+function agregarFila(){
+  const visCols = COLS.filter(c=>colsVisible.has(c));
+  const newRow = {_id:genId()};
+  COLS.forEach(c => newRow[c] = '');
+  masterData.push(newRow);
+  refresh();
+  // focus first cell of new row
+  setTimeout(()=>{
+    const cells = document.querySelectorAll('.grid-table tbody tr:not(.tr-addrow) [contenteditable]');
+    if(cells.length) cells[cells.length - visCols.length].focus();
+  }, 30);
+}
+
+function mostrarAddColForm(){
+  const th = gid('th-addcol');
+  if(!th) return;
+  th.innerHTML = `<div class="addcol-form">
+    <input class="addcol-input" id="addcol-input" placeholder="NOMBRE" maxlength="24"
+      onkeydown="if(event.key==='Enter')confirmarAddCol();if(event.key==='Escape')cancelarAddCol();">
+    <button class="addcol-confirm" onclick="confirmarAddCol()">✓</button>
+    <button class="addcol-cancel" onclick="cancelarAddCol()">✕</button>
+  </div>`;
+  setTimeout(()=>{ const el=gid('addcol-input'); if(el) el.focus(); }, 20);
+}
+
+function confirmarAddCol(){
+  const el = gid('addcol-input');
+  if(!el) return;
+  const col = el.value.trim().toUpperCase();
+  if(!col){ el.focus(); return; }
+  if(extraCols.includes(col)){ notif('Esa columna ya existe.', true); el.focus(); return; }
+  if(COLS_BASE.includes(col)){
+    // column exists in base but may be hidden — just make it visible
+    colsVisible.add(col);
+    refresh(); initColVis(); initExportCols();
+    notif(`✅ Columna "${col}" activada.`);
+    return;
+  }
+  extraCols.push(col);
+  colsVisible.add(col);
+  masterData.forEach(r => r[col] = r[col]||'');
+  refresh(); initColVis(); initExportCols();
+  notif(`✅ Columna "${col}" agregada.`);
+}
+
+function cancelarAddCol(){
+  refresh();
+}
+
+function agregarCol(){
+  mostrarAddColForm();
+}
+
+function eliminarCol(col){
+  if(!extraCols.includes(col)) return;
+  extraCols = extraCols.filter(c=>c!==col);
+  colsVisible.delete(col);
+  masterData.forEach(r => delete r[col]);
+  refresh(); initColVis(); initExportCols();
+}
+
+function renameCol(oldName, newName){
+  newName = newName.trim().toUpperCase();
+  if(!newName || newName===oldName) return;
+  if(COLS.includes(newName)) return notif('Ese nombre ya existe.', true);
+  const idx = extraCols.indexOf(oldName);
+  if(idx===-1) return;
+  extraCols[idx] = newName;
+  colsVisible.delete(oldName);
+  colsVisible.add(newName);
+  masterData.forEach(r => { r[newName]=r[oldName]||''; delete r[oldName]; });
+  refresh(); initColVis(); initExportCols();
+}
+function updateStats(){
+  const total=masterData.length, filt=filteredData.length;
+  const gestiones={};
+  masterData.forEach(r=>{gestiones[r['GESTIÓN']]=(gestiones[r['GESTIÓN']]||0)+1;});
+  let h=`<div class="stat" data-gest="__total__"><div class="stat-val">${total}</div><div class="stat-label">Total</div></div>`;
+  Object.entries(gestiones).sort((a,b)=>b[1]-a[1]).slice(0,5).forEach(([g,n])=>{
+    h+=`<div class="stat" data-gest="${g}"><div class="stat-val">${n}</div><div class="stat-label" style="max-width:80px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${g||'—'}</div></div>`;
+  });
+  gid('stats-bar').innerHTML=h;
+  gid('badge-total').textContent=total;
+  const res=Object.entries(gestiones).sort((a,b)=>b[1]-a[1]).map(([g,n])=>`${n.toString().padStart(3)}  ${g}`).join('\n');
+  const rg=gid('resumen-gest'); if(rg) rg.innerText=res||'Sin datos';
+}
+
+function updateActiveFiltersBar(){
+  const bar=gid('active-filters-bar');
+  const entries=Object.entries(colFilters);
+  if(!entries.length){
+    bar.innerHTML='<span class="no-filters">Sin filtros activos — haz clic en ▼ de cualquier columna para filtrar</span>'; return;
+  }
+  let h='';
+  entries.forEach(([col,set])=>{
+    const vals=[...set].slice(0,3).join(', ')+(set.size>3?` +${set.size-3}`:'');
+    h+=`<span class="fchip" onclick="clearColFilter('${col}')" title="Click para quitar filtro de ${col}"><span class="fchip-col">${col}:</span> ${vals} ✕</span>`;
+  });
+  h+=`<button class="bg bsm" onclick="clearAllFilters()" style="margin-left:auto">✕ Quitar todos</button>`;
+  bar.innerHTML=h;
+}
+
+function toggleEstado(btn){
+  const panel = gid('estado-panel');
+  if(panel.style.display !== 'none'){ panel.style.display='none'; btn.style.color=''; return; }
+
+  // Duplicates
+  const conteo={};
+  masterData.forEach(r=>{ if(r.ISO) conteo[r.ISO]=(conteo[r.ISO]||0)+1; });
+  const dups = Object.entries(conteo).filter(([iso,n])=>n>1&&masterData.find(r=>r.ISO===iso&&r['GESTIÓN']!=='RETIRO'));
+
+  // Cols visible
+  const visCols = COLS.filter(c=>colsVisible.has(c));
+
+  // Empty cells in key cols
+  const keyCols = ['ISO','GESTIÓN','ORIGEN'];
+  const emptyCells = {};
+  keyCols.forEach(c=>{ emptyCells[c] = masterData.filter(r=>!r[c]||r[c].trim()==='').length; });
+
+  let h = '';
+
+  // Duplicates
+  if(dups.length){
+    h += `<div style="color:#f85149;margin-bottom:6px"><b>⚠️ ${dups.length} ISO(s) duplicadas:</b> ${dups.map(([iso,n])=>`<span style="color:#FFDA1A">${iso}</span>(×${n})`).join(' · ')}</div>`;
+  } else {
+    h += `<div style="color:#3fb950">✓ Sin duplicados</div>`;
+  }
+
+  // Cols
+  h += `<div style="color:#8b949e;margin-top:4px"><b style="color:#e6edf3">Columnas visibles:</b> ${visCols.map(c=>`<span style="color:#7bb8ff">${c}</span>`).join(' · ')}</div>`;
+
+  // Empty cells
+  const empStr = keyCols.map(c=> emptyCells[c]>0 ? `<span style="color:#f0883e">${c}:${emptyCells[c]} vacías</span>` : `<span style="color:#3fb950">${c}:✓</span>`).join(' · ');
+  h += `<div style="margin-top:4px"><b style="color:#e6edf3">Celdas vacías:</b> ${empStr}</div>`;
+
+  // Rows
+  h += `<div style="margin-top:4px;color:#8b949e"><b style="color:#e6edf3">Filas:</b> ${masterData.length} total · ${filteredData.length} visibles</div>`;
+
+  panel.innerHTML = h;
+  panel.style.display = 'block';
+  btn.style.color = '#FFDA1A';
+}
+
+function clearColFilter(col){
+  delete colFilters[col]; renderTabla();
+}
+function clearAllFilters(){
+  colFilters={}; renderTabla();
+}
+
+function refresh(){ renderTabla(); if(pvPlanData.length) renderDupCheck(); }
+
+// ══════════════════════════════════════
+//  EXPORTAR
+// ══════════════════════════════════════
+function exCelda(val,col){
+  if(col==='DESTINO'||col==='VEH') return toTCVeh(val);
+  return val;
+}
+
+function buildHTMLTable(data,cols){
+  const t=document.createElement('table');
+  t.style.cssText="border-collapse:collapse;font-family:Aptos,Calibri,Arial,sans-serif;font-size:12pt;";
+  const trH=document.createElement('tr');
+  cols.forEach(c=>{
+    const th=document.createElement('td');
+    th.innerText=c;
+    th.style.cssText="border:1px solid black;padding:6px 10px;font-family:Aptos,Calibri,Arial,sans-serif;font-size:12pt;font-weight:bold;text-align:center;background:#0051BA;color:#FFDA1A;";
+    trH.appendChild(th);
+  });
+  t.appendChild(trH);
+  data.forEach(r=>{
+    const tr=document.createElement('tr');
+    cols.forEach(c=>{
+      const td=document.createElement('td');
+      td.innerText=exCelda(r[c]||"",c);
+      td.style.cssText="border:1px solid black;padding:5px 10px;text-align:center;font-family:Aptos,Calibri,Arial,sans-serif;font-size:12pt;color:#000000;background:#ffffff;";
+      tr.appendChild(td);
+    });
+    t.appendChild(tr);
+  });
+  return t;
+}
+
+function copiarNodo(nodo){
+  const tmp=document.createElement('div');
+  tmp.appendChild(nodo);
+
+  // Container fuera de pantalla pero en el documento principal (no iframe)
+  // Con estilos blancos inline para que execCommand copie sin herencia oscura
+  const host=document.createElement('div');
+  host.setAttribute('contenteditable','true');
+  host.style.cssText='position:fixed;left:-9999px;top:0;width:600px;opacity:1;background:white;color:black;font-family:Aptos,Calibri,Arial,sans-serif;font-size:12pt;z-index:-1;';
+  host.innerHTML=tmp.innerHTML;
+  document.body.appendChild(host);
+
+  host.focus();
+  const range=document.createRange();
+  range.selectNodeContents(host);
+  const sel=window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  document.execCommand('copy');
+  sel.removeAllRanges();
+  document.body.removeChild(host);
+}
+
+function copiarTabla(){
+  if(!filteredData.length) return notif("Sin datos.", true);
+  const cols=Array.from(document.querySelectorAll('.col-chk:checked')).map(c=>c.value);
+  if(!cols.length) return notif("Selecciona columnas.", true);
+  copiarNodo(buildHTMLTable(filteredData,cols));
+  notif("📋 Tabla copiada.");
+}
+
+function exportarExcel(){
+  if(!masterData.length) return notif("Sin datos.", true);
+  const ws=XLSX.utils.json_to_sheet(masterData.map(r=>{const o={};COLS.forEach(c=>o[c]=r[c]||"");return o;}));
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Rutas");
+  XLSX.writeFile(wb,`rutas_ikea_${new Date().toISOString().slice(0,10)}.xlsx`);
+  notif("✅ Excel descargado.");
+}
+
+function exportarJSON(){
+  if(!masterData.length&&!proyectosData.length) return notif("Sin datos.", true);
+  const payload={masterData,proyectosData,colsVisible:[...colsVisible],savedAt:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`rutas_ikea_${new Date().toISOString().slice(0,10)}.json`; a.click();
+  notif("✅ JSON guardado.");
+}
+
+function importarJSON(input){
+  const f=input.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const p=JSON.parse(e.target.result);
+      masterData=p.masterData||[];
+      proyectosData=p.proyectosData||[];
+      colsVisible=new Set(p.colsVisible||[...COLS_DEFAULT_VIS]);
+      colFilters={};
+      initColVis(); refresh(); renderProyectos();
+      notif(`📂 Sesión cargada (${masterData.length} filas).`);
+    }catch(err){notif("Error al importar JSON.", true);}
+  };
+  reader.readAsText(f); input.value="";
+}
+
+// ══════════════════════════════════════
+//  PLANTILLAS
+// ══════════════════════════════════════
+function copiarPlantilla(tipo){
+  const hoy=new Date(), man=new Date(hoy); man.setDate(hoy.getDate()+1);
+  const wrap=document.createElement('div');
+  let preview='', titulo='';
+
+  if(tipo==='repites'){
+    const datos=masterData.filter(r=>r['CORREO REPITES']==='SI');
+    if(!datos.length) return notif("No hay filas con CORREO REPITES = SI.", true);
+    const p=document.createElement('p');
+    p.style.cssText="font-family:'Aptos',sans-serif;font-size:12pt;margin-bottom:12px;";
+    p.innerHTML="Buenas tardes @Despacho Ecommerce WH comparto repites";
+    wrap.appendChild(p); wrap.appendChild(buildHTMLTable(datos,['ISO','GESTIÓN','ORIGEN','DESTINO']));
+    preview=`<b>Para:</b> @Despacho Ecommerce WH<br><b>Asunto:</b> Repites<br><b>Filas:</b> ${datos.length}`; titulo='Repites';
+
+  }else if(tipo==='pv'){
+    const pvSet=new Set(['POST VENTA 3','VEH01 POSTVENTA','VEH02 POSTVENTA','VEH01 POST VENTA','VEH02 POST VENTA']);
+    const datos=masterData.filter(r=>pvSet.has((r.DESTINO||"").trim().toUpperCase()));
+    if(!datos.length) return notif("Sin datos de POST VENTA en columna DESTINO.", true);
+    const p=document.createElement('p');
+    p.style.cssText="font-family:'Aptos',sans-serif;font-size:12pt;margin-bottom:12px;";
+    p.innerHTML="Buenas tardes Wilfredo Rugel, Favor su ayuda gestionando 3 veh, para cumplir con la programación de post venta, @Despacho Ecommerce WH favor su ayuda gestionando los siguientes movimientos para armar las rutas:";
+    wrap.appendChild(p); wrap.appendChild(buildHTMLTable(datos,['ISO','GESTIÓN','ORIGEN','DESTINO']));
+    preview=`<b>Para:</b> Wilfredo Rugel, @Despacho<br><b>Filas:</b> ${datos.length}`; titulo='Post Venta';
+
+  }else if(tipo==='leslie'){
+    if(!proyectosData.length) return notif("Sin datos de Proyectos Leslie.", true);
+    const esDos=proyectosData[0]._tipo==='dos';
+    const cols=esDos?['VEHÍCULO','ISO','DIRECCIÓN']:['ISO','DIRECCIÓN'];
+    const datos=proyectosData.filter(r=>{ const iso=(r.ISO||"").trim().toUpperCase(); return iso!=='INICIO'&&iso!=='FIN'; });
+    const asunto=`Flujo Despacho Proyectos Leslie ${fmtDate(hoy)}`;
+    const p=document.createElement('p');
+    p.style.cssText="font-family:'Aptos',sans-serif;font-size:12pt;margin-bottom:12px;line-height:1.6;";
+    p.innerHTML=`Hej Team!,<br><br>@Despacho Ecommerce WH Comparto las órdenes correspondientes al flujo de proyectos B2C que realizamos con Transportes Leslie, el día ${fmtDate(man)}. Por favor, solicito su ayuda para procesar estas órdenes y ubicarlas en el andén 2A (Nave 4) para Transportes Leslie, diferenciadas de los envío retiro.`;
+    wrap.appendChild(p);
+    wrap.appendChild(buildHTMLTable(datos, cols));
+    preview=`<b>Asunto:</b> ${asunto}<br><b>Día:</b> ${fmtDate(man)}<br><b>Filas:</b> ${datos.length}`; titulo='Leslie';
+  }
+
+  // Clone before copying (copiarNodo moves nodes out of wrap)
+  const wrapClone=wrap.cloneNode(true);
+  copiarNodo(wrap);
+  // Show actual body in preview
+  const previewDiv=gid('preview-plantilla');
+  previewDiv.innerHTML='<div style="background:#22272e;border-radius:6px;padding:6px 10px;font-size:10px;color:#656d76;margin-bottom:10px">'+preview+'</div>';
+  wrapClone.style.cssText='font-size:11px;color:#e6edf3;line-height:1.6;';
+  // Fix table colors for dark preview
+  wrapClone.querySelectorAll('td').forEach(td=>{
+    td.style.color='#e6edf3';
+    if(td.style.background==='#f2f2f2') td.style.background='#22272e';
+  });
+  previewDiv.appendChild(wrapClone);
+  notif(`✉️ Plantilla ${titulo} copiada.`);
+}
+
+// ══════════════════════════════════════
+//  K8 — ISOs DIRECTAS
+// ══════════════════════════════════════
+function procesarK8(){
+  const raw=gid('txt-k8').value.trim(); if(!raw) return notif("Pega ISOs.", true);
+  // split by newlines, spaces, commas
+  const isos=raw.split(/[\n\r,\s]+/).map(s=>s.trim().toUpperCase()).filter(Boolean);
+  if(!isos.length) return notif("No se detectaron ISOs.", true);
+  let added=0;
+  isos.forEach(iso=>{
+    masterData.push({_id:genId(),ISO:iso,'GESTIÓN':'K8',ORIGEN:'K8',DESTINO:'',VEH:'','CORREO REPITES':'',COMENTARIO_RAW:'K8'});
+    added++;
+  });
+  gid('txt-k8').value=""; refresh(); notif(`✅ ${added} ISOs K8 cargadas.`);
+}
+
+// ══════════════════════════════════════
+//  VEH01 POSTVENTA — REVISAR DUPLICADAS
+// ══════════════════════════════════════
+async function procesarPVDuplicadas(){
+  const f=gid('file-pv-plan2').files[0]; if(!f) return notif("Falta archivo Plan.", true);
+  try{
+    const rows=await leerArchivo(f);
+    if(!rows.length) return notif("Archivo vacío.", true);
+    const keys=Object.keys(rows[0]);
+    const cTit=keys.find(k=>k==="TITULO"||k==="TÍTULO")||keys.find(k=>k.includes("TITULO")||k.includes("TÍTULO")||k.includes("ISO"));
+    const cVeh=keys.find(k=>k==="VEHICULO"||k==="VEHÍCULO"||k==="VEH")||keys.find(k=>k.includes("VEHICULO")||k.includes("VEHÍCULO"));
+    if(!cTit) return notif(`No se detectó columna de ISO/Título. Cols: ${keys.join(', ')}`, true);
+
+    // Filter VEH01 Postventa rows, excluding Inicio/Fin
+    const pvRows=rows.filter(r=>{
+      const veh=(r[cVeh]||"").trim().toUpperCase();
+      return /^VEH01\s*POST\s*VENTA/.test(veh)||/^VEH01\s*POSTVENTA/.test(veh);
+    });
+    if(!pvRows.length) return notif("No se encontraron filas de VEH01 Postventa en el plan.", true);
+
+    pvPlanData=pvRows.map(r=>(r[cTit]||"").trim().toUpperCase()).filter(iso=>iso&&iso!=="INICIO"&&iso!=="FIN");
+
+    gid('file-pv-plan2').value="";
+    renderDupCheck();
+    notif(`✅ ${pvPlanData.length} ISOs de VEH01 Postventa cargadas.`);
+  }catch(e){notif("Error: "+e,true);}
+}
+
+function renderDupCheck(){
+  const cont=gid('table-dupcheck');
+  if(!pvPlanData.length){
+    cont.innerHTML='<div class="empty-state"><span>🔍</span>Carga el archivo Plan para revisar VEH01 Postventa</div>';
+    return;
+  }
+
+  // Build ISO → gestión map from dashboard
+  const dashIsoMap={};
+  masterData.forEach(r=>{ if(r.ISO){ const k=r.ISO.trim().toUpperCase(); if(!dashIsoMap[k]) dashIsoMap[k]=[]; dashIsoMap[k].push(r); } });
+
+  const dupCount=pvPlanData.filter(iso=>dashIsoMap[iso]&&dashIsoMap[iso].length>0).length;
+
+  let h=`<table><thead><tr>
+    <th><div class="th-inner">ISO</div></th>
+    <th><div class="th-inner">Estado</div></th>
+    <th><div class="th-inner">Gestión en Dashboard</div></th>
+  </tr></thead><tbody>`;
+
+  pvPlanData.forEach(iso=>{
+    const matches=dashIsoMap[iso];
+    if(matches&&matches.length>0){
+      matches.forEach((r,i)=>{
+        h+=`<tr class="dup-row">
+          <td style="font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace">${i===0?iso:''}</td>
+          <td style="text-align:center"><span style="background:#f85149;color:#fff;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700">⚠️ DUPLICADA</span></td>
+          <td style="font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;color:#ff7b72">${r['GESTIÓN']||'—'}</td>
+        </tr>`;
+      });
+    } else {
+      h+=`<tr>
+        <td style="font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace">${iso}</td>
+        <td style="text-align:center"><span style="background:rgba(63,185,80,.12);color:#3fb950;border:1px solid #3fb950;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700">✓ OK</span></td>
+        <td style="color:#656d76">—</td>
+      </tr>`;
+    }
+  });
+
+  h+=`</tbody></table>`;
+  cont.innerHTML=h;
+
+  // Update tab badge if there are dups
+  const dupBtn=gid('tab-dupcheck-btn');
+  if(dupCount>0){
+    dupBtn.innerHTML=`🔍 Revisar Duplicados <span class="tbadge" style="background:#f85149">${dupCount}</span>`;
+  } else {
+    dupBtn.innerHTML=`🔍 Revisar Duplicados <span class="tbadge" style="background:#3fb950;color:#0d1117">✓</span>`;
+  }
+}
+
+// ══════════════════════════════════════
+//  ARCHIVO RUTEO
+// ══════════════════════════════════════
+function fmtRuteoDate(d){
+  const months=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const day=String(d.getDate()).padStart(2,'0');
+  const mon=months[d.getMonth()];
+  const yr=String(d.getFullYear()).slice(2);
+  return `${day}-${mon}-${yr}`;
+}
+
+async function procesarArchivoRuteo(){
+  const f=gid('file-ruteo').files[0]; if(!f) return notif("Falta archivo.", true);
+  if(!masterData.length) return notif("Dashboard vacío — carga datos primero.", true);
+  try{
+    const rows=await leerArchivo(f);
+    if(!rows.length) return notif("Archivo vacío.", true);
+
+    // Build ISO → GESTIÓN map from dashboard
+    const isoGestMap={};
+    masterData.forEach(r=>{ if(r.ISO) isoGestMap[r.ISO.trim().toUpperCase()]=r['GESTIÓN']||""; });
+
+    // Date de mañana
+    const man=new Date(); man.setDate(man.getDate()+1);
+    const fechaStr=fmtRuteoDate(man);
+
+    // Find relevant columns (case-insensitive)
+    const keys=Object.keys(rows[0]);
+    const colIdRef=keys.find(k=>k.replace(/[\s_]/g,'').toUpperCase().includes('IDREFERENCIA')||k.toUpperCase().includes('ID_REFERENCIA'));
+    const colFecha=keys.find(k=>k.replace(/[\s_]/g,'').toUpperCase().includes('FECHAPROGRAMADA')||k.toUpperCase().includes('FECHA_PROGRAMADA'));
+    const colIso=keys.find(k=>k==="ISO"||k.includes("ISO"));
+
+    let matched=0, notFound=[];
+
+    const output=rows.map(r=>{
+      const rowCopy={...r};
+      const iso=(colIso?r[colIso]:Object.values(r)[0]||"").trim().toUpperCase();
+      const gest=isoGestMap[iso];
+      if(gest!==undefined){
+        if(colIdRef) rowCopy[colIdRef]=gest; else rowCopy['ID_REFERENCIA']=gest;
+        matched++;
+      } else {
+        notFound.push(iso);
+      }
+      if(colFecha) rowCopy[colFecha]=fechaStr; else rowCopy['FECHA_PROGRAMADA']=fechaStr;
+      return rowCopy;
+    });
+
+    // Export
+    const ws=XLSX.utils.json_to_sheet(output);
+    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"RUTEO");
+    XLSX.writeFile(wb,"ISOS RUTEO.xlsx");
+
+    const res=gid('ruteo-result');
+    res.innerHTML=`✅ Exportado como <b>ISOS RUTEO.xlsx</b><br>ISOs cruzadas: <b>${matched}</b> / ${rows.length}<br>Fecha programada: <b>${fechaStr}</b>${notFound.length?`<br><span style="color:#f0883e">Sin coincidencia (${notFound.length}): ${notFound.slice(0,8).join(', ')}${notFound.length>8?' …':''}</span>`:''}`;
+    res.style.display='block';
+    gid('file-ruteo').value="";
+    notif("✅ ISOS RUTEO.xlsx exportado.");
+  }catch(e){notif("Error: "+e,true);}
+}
+
+// ══════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════
+initColVis();
+initExportCols();
+updateStats();
+</script>
+
+</body>
+</html>

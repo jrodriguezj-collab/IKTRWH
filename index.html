@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IKEA Tools</title>
+
+<style>
+:root {
+  --blue: #0051BA;
+  --blue-dark: #003A8C;
+  --blue-mid: #1a6dd4;
+  --yellow: #FFDA1A;
+  --yellow-dark: #e6c400;
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #1c2128;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --text-dim: #656d76;
+  --green: #3fb950;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+  background: #0d1117;
+  color: #e6edf3;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* Grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,81,186,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,81,186,.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Glow */
+body::after {
+  content: '';
+  position: fixed;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(0,81,186,.18) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* HEADER */
+.header {
+  position: relative;
+  z-index: 1;
+  padding: 52px 48px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+}
+
+.logo-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #003A8C, #1a6dd4);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  box-shadow: 0 8px 24px rgba(0,81,186,.4);
+  border: 1px solid rgba(0,81,186,.5);
+}
+
+.logo-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.logo-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #FFDA1A;
+  text-transform: uppercase;
+}
+
+.logo-sub {
+  font-size: 11px;
+  color: #656d76;
+  letter-spacing: 1px;
+  font-family: 'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+}
+
+.header-divider {
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #FFDA1A, transparent);
+  border-radius: 2px;
+  margin: 8px 0 0;
+}
+
+.header-desc {
+  font-size: 13px;
+  color: #8b949e;
+  max-width: 400px;
+  line-height: 1.6;
+}
+
+/* APPS GRID */
+.apps-section {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  padding: 52px 48px 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+}
+
+.section-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  color: #656d76;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 780px;
+}
+
+.section-label::before,
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #30363d;
+}
+
+.apps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  width: 100%;
+  max-width: 780px;
+}
+
+/* APP CARD */
+.app-card {
+  position: relative;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 14px;
+  padding: 24px 22px 20px;
+  text-decoration: none;
+  color: #e6edf3;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  cursor: pointer;
+  transition: all .2s cubic-bezier(.4,0,.2,1);
+  overflow: hidden;
+  group: true;
+}
+
+.app-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0,81,186,.06), transparent 60%);
+  opacity: 0;
+  transition: opacity .2s;
+}
+
+.app-card:hover {
+  border-color: rgba(0,81,186,.6);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0,0,0,.4), 0 0 0 1px rgba(0,81,186,.2);
+}
+
+.app-card:hover::before { opacity: 1; }
+
+.app-card:active { transform: translateY(-1px); }
+
+/* accent line top */
+.app-card .accent {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 14px 14px 0 0;
+}
+
+.app-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.app-info { display: flex; flex-direction: column; gap: 4px; }
+
+.app-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e6edf3;
+  line-height: 1.2;
+}
+
+.app-desc {
+  font-size: 11px;
+  color: #8b949e;
+  line-height: 1.5;
+}
+
+.app-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.app-tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-family: 'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+}
+
+.app-arrow {
+  font-size: 14px;
+  color: #656d76;
+  transition: all .2s;
+}
+
+.app-card:hover .app-arrow {
+  color: #FFDA1A;
+  transform: translateX(3px);
+}
+
+/* ADD CARD */
+.add-card {
+  background: transparent;
+  border: 1px dashed #30363d;
+  border-radius: 14px;
+  padding: 24px 22px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all .2s;
+  min-height: 160px;
+  color: #656d76;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.add-card:hover {
+  border-color: #0051BA;
+  color: #0051BA;
+  background: rgba(0,81,186,.04);
+}
+
+.add-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px dashed currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  transition: transform .2s;
+}
+
+.add-card:hover .add-icon { transform: scale(1.1) rotate(90deg); }
+
+/* FOOTER */
+.footer {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 20px;
+  font-size: 10px;
+  color: #656d76;
+  font-family: 'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+  letter-spacing: .5px;
+  border-top: 1px solid #30363d;
+}
+
+/* Entrance animation */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.header         { animation: fadeUp .5s ease both; }
+.section-label  { animation: fadeUp .5s .15s ease both; }
+.app-card:nth-child(1) { animation: fadeUp .45s .2s ease both; }
+.app-card:nth-child(2) { animation: fadeUp .45s .28s ease both; }
+.app-card:nth-child(3) { animation: fadeUp .45s .36s ease both; }
+.app-card:nth-child(4) { animation: fadeUp .45s .44s ease both; }
+.add-card               { animation: fadeUp .45s .5s ease both; }
+</style>
+
+</head>
+<body>
+
+<div class="header">
+  <div class="logo-row">
+    <div class="logo-icon">🚛</div>
+    <div class="logo-text">
+      <div class="logo-title">IKEA Tools</div>
+      <div class="logo-sub">suite de aplicaciones · operaciones</div>
+    </div>
+  </div>
+  <div class="header-divider"></div>
+  <div class="header-desc">Herramientas internas para gestión de rutas, despacho y operaciones de ecommerce.</div>
+</div>
+
+<div class="apps-section">
+  <div class="section-label">Aplicaciones</div>
+
+  <div class="apps-grid">
+
+```
+<!-- App 1: Rutear Postventa -->
+<a class="app-card" href="ruteador-ikea-v9.html">
+  <div class="accent" style="background:linear-gradient(90deg,#0051BA,#1a6dd4)"></div>
+  <div class="app-icon" style="background:rgba(0,81,186,.15);border:1px solid rgba(0,81,186,.3)">🗺️</div>
+  <div class="app-info">
+    <div class="app-name">Rutear Postventa</div>
+    <div class="app-desc">Dashboard de rutas, repites, retiros y gestión de despacho ecommerce.</div>
+  </div>
+  <div class="app-footer">
+    <span class="app-tag" style="background:rgba(0,81,186,.15);color:#7bb8ff">Rutas</span>
+    <span class="app-arrow">→</span>
+  </div>
+</a>
+
+<!-- Placeholder: más apps aquí -->
+<div class="add-card" onclick="alert('Próximamente — agrega tu siguiente app aquí')">
+  <div class="add-icon">+</div>
+  <span>Nueva aplicación</span>
+</div>
+```
+
+  </div>
+</div>
+
+<div class="footer">
+  IKEA Operations Tools · Sistema interno · <span id="yr"></span>
+</div>
+
+<script>
+  document.getElementById('yr').textContent = new Date().getFullYear();
+</script>
+
+</body>
+</html>
