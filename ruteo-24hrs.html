@@ -248,18 +248,36 @@ function getFechaHoy(){
 function removeAccents(str){
   return str?str.toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().trim():"";
 }
-function readFile(file){
-  return new Promise((res,rej)=>{
-    const reader=new FileReader();
-    reader.onload=e=>{
-      try{
-        const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
-        res(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''}));
-      }catch(err){rej(err);}
-    };
-    reader.onerror=rej;
-    reader.readAsArrayBuffer(file);
-  });
+function readFile(file, nombreHoja = null){
+ return new Promise((res,rej)=>{
+   const reader=new FileReader();
+   reader.onload=e=>{
+     try{
+       const data = e.target.result;
+       const wb = XLSX.read(data, {type: 'binary'});
+       let sheetName;
+       if (nombreHoja) {
+         // Si pediste una hoja específica, verificamos que exista en el archivo
+         if (wb.SheetNames.includes(nombreHoja)) {
+           sheetName = nombreHoja;
+         } else {
+           throw new Error(`La hoja llamada "${nombreHoja}" no existe en este archivo.`);
+         }
+       } else {
+         // Si no pasas nombre, toma la primera hoja por defecto
+         sheetName = wb.SheetNames[0];
+       }
+       // Leemos la hoja seleccionada
+       const ws = wb.Sheets[sheetName];
+       res(XLSX.utils.sheet_to_json(ws, {defval: ''}));
+     }catch(err){
+       console.error("Error al procesar el archivo:", err);
+       rej(err);
+     }
+   };
+   reader.onerror=rej;
+   reader.readAsBinaryString(file);
+ });
 }
 function exportXlsx(data, nombre, skipHeader=false){
   const ws=XLSX.utils.json_to_sheet(data,{skipHeader});
