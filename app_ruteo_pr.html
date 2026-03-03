@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>APP DE RUTEO PR</title>
+    <script src="xlsx.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5; color: #333; padding: 20px; margin: 0; }
+        .container { max-width: 900px; margin: auto; background: #fff; padding: 25px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 25px; border-top: 5px solid #0058a3;}
+        h2 { color: #0058a3; margin-top: 0; border-bottom: 2px solid #fbd914; padding-bottom: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;}
+        h3 { color: #0058a3; font-size: 18px; margin-bottom: 15px;}
+        .upload-group { background: #fafafa; border: 1px dashed #0058a3; padding: 15px; border-radius: 4px; margin-bottom: 15px; }
+        .upload-group label { font-weight: bold; display: block; margin-bottom: 8px; color: #0058a3; }
+        .mandatory-badge { background-color: #c0392b; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 5px; vertical-align: middle; font-weight: bold;}
+        .btn { border: none; padding: 10px 18px; cursor: pointer; border-radius: 4px; font-size: 14px; font-weight: bold; transition: 0.2s;}
+        .btn:disabled { background-color: #e0e0e0 !important; color: #9e9e9e !important; border: 2px solid #ccc !important; cursor: not-allowed; opacity: 1;}
+        .btn-main { background-color: #0058a3; color: #fff; font-size: 16px; padding: 15px; width: 100%; border: 2px solid #0058a3;}
+        .btn-main:hover:not(:disabled) { background-color: #00427a; border-color: #00427a;}
+        .btn-blue { background-color: #0058a3; color: #fff; border: 2px solid #0058a3;}
+        .btn-blue:hover:not(:disabled) { background-color: #00427a; border-color: #00427a;}
+        .btn-yellow { background-color: #fbd914; color: #0058a3; border: 2px solid #fbd914;}
+        .btn-yellow:hover:not(:disabled) { background-color: #e5c317; border-color: #e5c317;}
+        .button-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; justify-content: center;}
+        .msg { font-size: 14px; padding: 12px; margin: 12px 0; font-weight: bold; border-radius: 4px; display: none; text-align: center;}
+        .success { background: #e6f0fa; color: #0058a3; border: 1px solid #0058a3; display: block;}
+        .error { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; display: block;}
+        .warning { background: #fff3e0; color: #ef6c00; border: 1px solid #ffcc80; display: block;}
+        .final-section { background-color: #fff; border: 3px solid #0058a3; text-align: center;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>1. Pre Ruteo</h2>
+    <div class="upload-group">
+        <label>📁 Cargar Archivo Base SCI <span class="mandatory-badge">Obligatorio</span></label>
+        <input type="file" id="fileFlujo1" accept=".xlsx, .xls">
+        <div id="msgFlujo1" class="msg"></div>
+    </div>
+    <div class="button-group">
+        <button class="btn btn-blue f1-btn" onclick="descargarTicketsF1('PROJECT', 'RUTEAR PROYECTOS')" disabled>Descargar Proyectos</button>
+        <button class="btn btn-blue f1-btn" onclick="descargarTicketsF1('POST_SALES', 'RUTEAR POST SALES')" disabled>Descargar Post Sales</button>
+        <button class="btn btn-blue f1-btn" onclick="descargarMiniTicket()" disabled>Descargar Mini Ticket</button>
+        <button class="btn btn-blue f1-btn" onclick="descargarRegularTicket()" disabled>Descargar Regular Ticket</button>
+    </div>
+</div>
+
+<div class="container">
+    <h2>2. Post Ruteo</h2>
+    <div class="upload-group">
+        <label>📁 1. Cargar Plan Simpliroute <span class="mandatory-badge">Obligatorio</span></label>
+        <input type="file" id="fileSimpli" accept=".xlsx, .xls, .csv">
+    </div>
+    <div class="upload-group">
+        <label>📁 2. Cargar Archivo Base SCI <span class="mandatory-badge">Obligatorio</span></label>
+        <input type="file" id="fileRuteo2" accept=".xlsx, .xls, .csv">
+        <div style="font-size: 12px; color: #7f8c8d; margin-top: 5px;">Requerido para el cruce de comuna</div>
+    </div>
+    <button class="btn btn-main" id="processBtn" onclick="processFlujo2()">Ejecutar Polinomio y Generar Plan</button>
+    <div id="msgFlujo2" class="msg"></div>
+</div>
+
+<div class="container final-section">
+    <h2>🚀 EXPORTACIONES FINALES</h2>
+    <p style="font-size: 13px; color: #555;">Una vez procesados los flujos correspondientes, los botones se habilitarán para descargar.</p>
+    <div class="button-group" style="margin-top: 20px;">
+        <button class="btn btn-yellow" id="btnDownloadPlan" onclick="downloadPlan()" disabled>1. SimpliRoute Plan RUTEO</button>
+        <button class="btn btn-blue" id="btnDownloadRoute" onclick="downloadRouteTo()" disabled>2. ROUTE TO picking</button>
+        <button class="btn btn-blue" id="btnDownloadPreola" onclick="download3Preola()" disabled>3. ROUTE TO PROYECT+POST SALES picking</button>
+    </div>
+</div>
+
+<script>
+// --- CONFIGURACIÓN GLOBAL ---
+const CONFIG = {
+    vehicles: {
+        trucks_order: Array.from({length: 40}, (_, i) => i + 1).filter(i => i !== 30).map(i => `VEH${String(i).padStart(2, '0')}`),
+        special_fixed: { "Proyectos Leslie": "VEH98", "VEH01 Postventa": "VEH99", "VEH02 Postventa": "VEH101", "Postventa 3": "VEH102" }
+    },
+    poly: {
+        weights: { distance_km: 0.44, duration_hr: 0.10, iso_count: 0.20, q_comunas: 0.01, volume_m3: 0.25 },
+        zone_multiplier: { extraurbano: 2.0, default: 1.0 }
+    },
+    extraurban_communes: [
+        "ALHUE", "BUIN", "CALERA DE TANGO", "COLINA", "CURACAVI", "EL MONTE", "ISLA DE MAIPO", "LAMPA",
+        "LO BARNECHEA", "MARIA PINTO", "MELIPILLA", "PADRE HURTADO", "PAINE", "PENAFLOR", "PIRQUE",
+        "SAN JOSE DE MAIPO", "SAN PEDRO", "TALAGANTE", "TILTIL"
+    ]
+};
+
+// Comunas permitidas para Mini Ticket (con y sin tilde para cubrir ambos casos)
+const MINI_TICKET_COMUNAS_SET = new Set(["ÑUÑOA", "NUNOA", "LAS CONDES", "VITACURA", "PROVIDENCIA", "SANTIAGO"]);
+
+let dataFlujo1 = null;
+let sheetPlanData = [];
+let sheetPolinomioData = [];
+let sheetResumenData = [];
+let metricsData = {};
+
+function getFechaHoy() {
+    const f = new Date();
+    return `${String(f.getDate()).padStart(2,'0')}-${String(f.getMonth()+1).padStart(2,'0')}-${f.getFullYear()}`;
+}
+function getFechaManana() {
+    const f = new Date();
+    f.setDate(f.getDate() + 1);
+    return `${String(f.getDate()).padStart(2,'0')}-${String(f.getMonth()+1).padStart(2,'0')}-${f.getFullYear()}`;
+}
+function showMsg(id, text, type) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className = `msg ${type}`;
+    setTimeout(() => { if (el.className.includes(type)) el.style.display = 'none'; }, 5000);
+}
+function exportarExcel(dataArray, nombreExacto, skipHeader = false) {
+    const worksheet = XLSX.utils.json_to_sheet(dataArray, { skipHeader });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+    XLSX.writeFile(workbook, nombreExacto);
+}
+
+// Normaliza texto: quita tildes, mayúsculas, trim
+function removeAccents(str) {
+    return str ? str.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim() : "";
+}
+
+// Verifica si una comuna está en la lista de Mini Ticket
+// Compara tanto con tilde como sin tilde
+function esComunaMini(comunaRaw) {
+    const sinTilde = removeAccents(comunaRaw);
+    const conTilde = comunaRaw ? comunaRaw.toString().toUpperCase().trim() : "";
+    return MINI_TICKET_COMUNAS_SET.has(sinTilde) || MINI_TICKET_COMUNAS_SET.has(conTilde);
+}
+
+// ==========================================
+// FLUJO 1
+// ==========================================
+document.getElementById('fileFlujo1').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        try {
+            const data = new Uint8Array(event.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            dataFlujo1 = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
+            showMsg('msgFlujo1', 'Archivo cargado correctamente.', 'success');
+            document.querySelectorAll('.f1-btn').forEach(btn => btn.disabled = false);
+            document.getElementById('btnDownloadPreola').disabled = false;
+        } catch (err) {
+            showMsg('msgFlujo1', 'Error: ' + err.message, 'error');
+        }
+    };
+    reader.readAsArrayBuffer(file);
+});
+
+function descargarTicketsF1(tipoVisita, nombreBase) {
+    if (!dataFlujo1) return;
+    const filtrado = dataFlujo1.filter(row => row['TIPO_VISITA'] === tipoVisita);
+    if (filtrado.length === 0) return showMsg('msgFlujo1', `Sin datos para ${tipoVisita}`, 'warning');
+    exportarExcel(filtrado, `${nombreBase} ${getFechaManana()}.xlsx`);
+}
+
+// MINI TICKET: solo filas con MINI_TICKET === 'mini_ticket' Y comuna en la lista permitida
+function descargarMiniTicket() {
+    if (!dataFlujo1) return;
+    const filtrado = dataFlujo1.filter(row => {
+        if (row['TIPO_VISITA'] === 'PROJECT' || row['TIPO_VISITA'] === 'POST_SALES') return false;
+        if (row['MINI_TICKET'] !== 'mini_ticket') return false;
+        // La columna de comuna es D_COUNTY en el archivo SCI
+        const comuna = row['D_COUNTY'] || row['CONDUCTOR'] || row['Conductor'] || "";
+        return esComunaMini(comuna);
+    });
+    if (filtrado.length === 0) return showMsg('msgFlujo1', 'Sin Mini Tickets para las comunas permitidas (ÑUÑOA, LAS CONDES, VITACURA, PROVIDENCIA, SANTIAGO)', 'warning');
+    exportarExcel(filtrado, `RUTEAR MINI TICKET ${getFechaManana()}.xlsx`);
+    showMsg('msgFlujo1', `Mini Ticket exportado: ${filtrado.length} filas.`, 'success');
+}
+
+// REGULAR TICKET: filas no_mini_ticket + mini_ticket fuera de comunas permitidas
+function descargarRegularTicket() {
+    if (!dataFlujo1) return;
+    const filtrado = dataFlujo1.filter(row => {
+        if (row['TIPO_VISITA'] === 'PROJECT' || row['TIPO_VISITA'] === 'POST_SALES') return false;
+        // no_mini_ticket siempre va aquí
+        if (row['MINI_TICKET'] === 'no_mini_ticket') return true;
+        // mini_ticket fuera de comunas permitidas también va aquí
+        if (row['MINI_TICKET'] === 'mini_ticket') {
+            const comuna = row['D_COUNTY'] || row['CONDUCTOR'] || row['Conductor'] || "";
+            return !esComunaMini(comuna);
+        }
+        return false;
+    });
+    if (filtrado.length === 0) return showMsg('msgFlujo1', 'Sin datos para Regular Ticket', 'warning');
+    exportarExcel(filtrado, `RUTEAR TICKET ${getFechaManana()}.xlsx`);
+    showMsg('msgFlujo1', `Regular Ticket exportado: ${filtrado.length} filas.`, 'success');
+}
+
+// ==========================================
+// FLUJO 2
+// ==========================================
+function parseNum(val) { return (typeof val === 'number') ? val : (parseFloat(String(val).replace(',', '.')) || 0); }
+function normalizeArr(arr) {
+    let min = Math.min(...arr), max = Math.max(...arr);
+    return arr.map(v => (min === max || isNaN(min) || isNaN(max)) ? 0 : (v - min) / (max - min));
+}
+function findCol(row, options) {
+    let keys = Object.keys(row);
+    return keys.find(k => options.some(opt => k.toLowerCase() === opt.toLowerCase()));
+}
+function timeToSeconds(timeStr) {
+    if (!timeStr) return null;
+    let parts = timeStr.split(':');
+    if (parts.length >= 2) return (parseInt(parts[0])||0)*3600 + (parseInt(parts[1])||0)*60 + (parseInt(parts[2])||0);
+    return null;
+}
+function formatSecondsToHHMMSS(totalSecs) {
+    if (totalSecs < 0) totalSecs = 0;
+    let h = Math.floor(totalSecs / 3600), m = Math.floor((totalSecs % 3600) / 60), s = Math.floor(totalSecs % 60);
+    return String(h).padStart(2,'0') + ":" + String(m).padStart(2,'0') + ":" + String(s).padStart(2,'0');
+}
+function readExcelFile(file) {
+    return new Promise((resolve, reject) => {
+        let reader = new FileReader();
+        reader.onload = e => {
+            try {
+                let data = new Uint8Array(e.target.result);
+                let workbook = XLSX.read(data, { type: 'array' });
+                resolve(XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" }));
+            } catch (err) { reject(err); }
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+async function processFlujo2() {
+    const fileSimpli = document.getElementById('fileSimpli').files[0];
+    const fileRuteo2 = document.getElementById('fileRuteo2').files[0];
+    const btn = document.getElementById('processBtn');
+    if (!fileSimpli || !fileRuteo2) return showMsg('msgFlujo2', "⚠️ Sube AMBOS archivos para continuar.", 'error');
+
+    try {
+        showMsg('msgFlujo2', "Procesando Polinomio...", 'success');
+        btn.disabled = true;
+
+        const dataSimpli = await readExcelFile(fileSimpli);
+        const dataRuteo  = await readExcelFile(fileRuteo2);
+        if (!dataSimpli.length) throw new Error("El archivo de SimpliRoute está vacío.");
+        if (!dataRuteo.length)  throw new Error("El archivo RUTEO SCI está vacío.");
+
+        const ruteoDict = {};
+        const colIso    = findCol(dataRuteo[0], ["ISO", "ID de referencia", "Title"]) || Object.keys(dataRuteo[0])[0];
+        const colComuna = findCol(dataRuteo[0], ["D_COUNTY", "COUNTY", "COMUNA", "D_County"]) || "D_COUNTY";
+        dataRuteo.forEach(row => { if (row[colIso]) ruteoDict[String(row[colIso]).trim().toUpperCase()] = row[colComuna] || ""; });
+
+        const sCols = {
+            conductor: findCol(dataSimpli[0], ["Conductor", "Driver"]) || "Conductor",
+            titulo:    findCol(dataSimpli[0], ["Título", "Title", "ISO"]) || "Título",
+            vehiculo:  findCol(dataSimpli[0], ["Vehículo", "Vehicle", "Ruta"]) || "Vehículo",
+            distancia: findCol(dataSimpli[0], ["Distancia", "Distance"]) || "Distancia",
+            cap2:      findCol(dataSimpli[0], ["Capacidad 2", "Capacity 2"]) || "Capacidad 2",
+            tiempoEst: findCol(dataSimpli[0], ["Tiempo estimado de llegada", "Tiempo estimado", "ETA"]) || "Tiempo estimado de llegada",
+            idRef:     findCol(dataSimpli[0], ["ID de referencia", "DOFI"]) || "ID de referencia"
+        };
+
+        let cleanSimpli  = [];
+        let extraUrbanSet = new Set(CONFIG.extraurban_communes.map(c => removeAccents(c)));
+
+        dataSimpli.forEach(row => {
+            let titulo = String(row[sCols.titulo]).trim().toUpperCase();
+            if (titulo !== "INICIO" && titulo !== "FIN") {
+                row[sCols.conductor] = ruteoDict[titulo] || row[sCols.conductor];
+            }
+            let valorComuna = removeAccents(row[sCols.conductor]);
+            row["_zona_temp"] = extraUrbanSet.has(valorComuna) ? "Extraurbano" : "Urbano";
+            let tiempo = row[sCols.tiempoEst] || "";
+            if (tiempo.includes("T")) {
+                let p = tiempo.split("T"); row["_fecha_temp"] = p[0]; row["_hora_temp"] = p[1];
+            } else if (tiempo.includes(" ")) {
+                let p = tiempo.split(" "); row["_fecha_temp"] = p[0]; row["_hora_temp"] = p[1];
+            } else {
+                row["_fecha_temp"] = tiempo; row["_hora_temp"] = "";
+            }
+            cleanSimpli.push(row);
+        });
+
+        const groups = {};
+        cleanSimpli.forEach(row => {
+            let veh = String(row[sCols.vehiculo] || "").trim();
+            if (!groups[veh]) groups[veh] = { original_vehicle: veh, rows: [] };
+            groups[veh].rows.push(row);
+        });
+
+        let summaries = [];
+        for (let veh in groups) {
+            let rows = groups[veh].rows;
+            let dist = rows.reduce((acc, r) => acc + parseNum(r[sCols.distancia]), 0);
+            let cap  = rows.reduce((acc, r) => acc + parseNum(r[sCols.cap2]), 0);
+            let minSec = Infinity, maxSec = -Infinity, realIsoCount = 0;
+
+            rows.forEach(r => {
+                let t = String(r[sCols.titulo]).trim().toUpperCase();
+                if (t !== "INICIO" && t !== "FIN") realIsoCount++;
+                let s = timeToSeconds(r["_hora_temp"]);
+                if (s !== null) { if (s < minSec) minSec = s; if (s > maxSec) maxSec = s; }
+            });
+
+            let durSec = (minSec !== Infinity && maxSec !== -Infinity && maxSec >= minSec) ? (maxSec - minSec) : 0;
+
+            // Count de comunas únicas por vehículo (excluyendo INICIO y FIN)
+            let comunasUnicas = new Set(
+                rows
+                    .filter(r => { let t = String(r[sCols.titulo]).trim().toUpperCase(); return t !== "INICIO" && t !== "FIN"; })
+                    .map(r => r[sCols.conductor])
+                    .filter(c => c && c !== "")
+            );
+
+            let zonasCount = { "Urbano": 0, "Extraurbano": 0 };
+            rows.forEach(r => zonasCount[r["_zona_temp"]]++);
+            let predominante = zonasCount["Extraurbano"] > 0 ? "Extraurbano" : "Urbano";
+
+            summaries.push({
+                original_vehicle: veh, Zona: predominante, distance_km: dist,
+                duration_hr: durSec / 3600, duration_formatted: formatSecondsToHHMMSS(durSec),
+                iso_count: realIsoCount, q_comunas: comunasUnicas.size, volume_m3: cap,
+                family: String(veh).toLowerCase().startsWith("mini") ? "mini" : "truck"
+            });
+        }
+
+        let trucksOnly   = summaries.filter(s => s.family === "truck" && !CONFIG.vehicles.special_fixed[s.original_vehicle]);
+        let minisOnly    = summaries.filter(s => s.family === "mini"  && !CONFIG.vehicles.special_fixed[s.original_vehicle]);
+        let specialsOnly = summaries.filter(s => !!CONFIG.vehicles.special_fixed[s.original_vehicle]);
+
+        let arr_dist = normalizeArr(trucksOnly.map(s => s.distance_km));
+        let arr_dur  = normalizeArr(trucksOnly.map(s => s.duration_hr));
+        let arr_iso  = normalizeArr(trucksOnly.map(s => s.iso_count));
+        let arr_com  = normalizeArr(trucksOnly.map(s => s.q_comunas));
+        let arr_vol  = normalizeArr(trucksOnly.map(s => s.volume_m3));
+
+        trucksOnly.forEach((s, i) => {
+            s.score_base = (
+                CONFIG.poly.weights.distance_km * arr_dist[i] +
+                CONFIG.poly.weights.duration_hr  * arr_dur[i]  +
+                CONFIG.poly.weights.iso_count    * arr_iso[i]  +
+                CONFIG.poly.weights.q_comunas    * arr_com[i]  +
+                CONFIG.poly.weights.volume_m3    * arr_vol[i]
+            );
+            let mult = String(s.Zona).toLowerCase() === "extraurbano" ? CONFIG.poly.zone_multiplier.extraurbano : CONFIG.poly.zone_multiplier.default;
+            s.score = s.score_base * mult;
+        });
+
+        minisOnly.forEach(s    => { s.score_base = 0; s.score = 0; });
+        specialsOnly.forEach(s => { s.score_base = 0; s.score = 0; });
+
+        minisOnly.sort((a, b)  => (parseInt(a.original_vehicle.replace(/\D/g, '')) || 999) - (parseInt(b.original_vehicle.replace(/\D/g, '')) || 999));
+        trucksOnly.sort((a, b) => b.score - a.score);
+
+        let vehicleMap = {};
+        minisOnly.forEach((r, idx)    => { r.final_route_to = `MINI${String(idx+1).padStart(2,'0')}`; vehicleMap[r.original_vehicle] = r.final_route_to; });
+        trucksOnly.forEach((r, idx)   => { r.final_route_to = CONFIG.vehicles.trucks_order[idx] || `VEH${String(idx+1).padStart(2,'0')}`; vehicleMap[r.original_vehicle] = r.final_route_to; });
+        specialsOnly.forEach(s        => { s.final_route_to = CONFIG.vehicles.special_fixed[s.original_vehicle]; vehicleMap[s.original_vehicle] = s.final_route_to; });
+
+        let ordered = [...minisOnly, ...trucksOnly, ...specialsOnly];
+
+        let originalKeys = Object.keys(dataSimpli[0]);
+        sheetPlanData = cleanSimpli.map(row => {
+            let outputRow = {};
+            originalKeys.forEach(k => {
+                if (!k.startsWith("__EMPTY") && !["_zona_temp","_fecha_temp","_hora_temp"].includes(k)) {
+                    outputRow[k] = row[k];
+                }
+            });
+            outputRow["DIA"]  = row["_fecha_temp"];
+            outputRow["HORA"] = row["_hora_temp"];
+            let vehReal = String(row[sCols.vehiculo] || "").trim();
+            outputRow["VEH INICIAL"] = vehReal;
+            outputRow["VEH FINAL"]   = vehicleMap[vehReal] || vehReal;
+            outputRow["_DOFI_INTERNO"]   = row[sCols.idRef];
+            outputRow["_TITULO_INTERNO"] = row[sCols.titulo];
+            return outputRow;
+        });
+
+        sheetPolinomioData = ordered.map(o => ({
+            "VEH INICIAL": o.original_vehicle, "VEH FINAL": o.final_route_to, "Familia": o.family, "Zona": o.Zona,
+            "Paradas ISO": o.iso_count, "Distancia Total (km)": Number(parseFloat(o.distance_km).toFixed(2)),
+            "Volumen (m3)": Number(parseFloat(o.volume_m3).toFixed(2)), "Tiempo en Ruta": o.duration_formatted,
+            "Cant. Comunas": o.q_comunas, "Score Base": Number(parseFloat(o.score_base).toFixed(4)),
+            "Score Final": Number(parseFloat(o.score).toFixed(4))
+        }));
+
+        // Resumen con nueva columna Q COMUNAS entre ISO y M3
+        sheetResumenData = ordered.map(o => ({
+            "ANDEN":          "",
+            "LADO":           "",
+            "Vehículo":       o.final_route_to,
+            "Distancia":      Number(parseFloat(o.distance_km).toFixed(2)),
+            "Tiempo en Ruta": o.duration_formatted,
+            "ISO":            o.iso_count,
+            "Q COMUNAS":      o.q_comunas,           // ← Nueva columna entre ISO y M3
+            "M3":             Number(parseFloat(o.volume_m3).toFixed(2)),
+            "Horario salida": "",
+            "Zona":           o.Zona,
+            "Tipo Vehículo":  "",
+            "Tipo Ticket":    o.final_route_to.toUpperCase().startsWith("MINI") ? "MiniTicket" : "Ticket Regular"
+        }));
+
+        let metricsVehicles = ordered.filter(o =>
+            o.original_vehicle !== "Proyectos Leslie" &&
+            o.original_vehicle !== "VEH01 Postventa"  &&
+            o.original_vehicle !== "VEH99"
+        );
+        let totalVeh = metricsVehicles.length;
+        let sumISO   = metricsVehicles.reduce((sum, o) => sum + o.iso_count, 0);
+        let promISO  = totalVeh > 0 ? Number((sumISO / totalVeh).toFixed(2)) : 0;
+        metricsData  = { total: totalVeh, prom: promISO, sum: sumISO };
+
+        showMsg('msgFlujo2', `¡Polinomio Listo! Los botones de descarga se han habilitado.`, 'success');
+        document.getElementById('btnDownloadPlan').disabled  = false;
+        document.getElementById('btnDownloadRoute').disabled = false;
+
+    } catch (error) {
+        showMsg('msgFlujo2', "❌ Error: " + error.message, 'error');
+        console.error(error);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// ==========================================
+// DESCARGAS FINALES
+// ==========================================
+
+// BOTÓN 1
+function downloadPlan() {
+    if (!sheetPlanData.length) return;
+    const wb = XLSX.utils.book_new();
+
+    let printPlan = sheetPlanData.map(r => {
+        let copy = { ...r };
+        delete copy["_DOFI_INTERNO"];
+        delete copy["_TITULO_INTERNO"];
+        return copy;
+    });
+
+    const ws1 = XLSX.utils.json_to_sheet(printPlan);
+    const range1 = XLSX.utils.decode_range(ws1['!ref']);
+    for (let c = range1.s.c; c <= range1.e.c; c++) {
+        let cell = ws1[XLSX.utils.encode_cell({ r: 0, c })];
+        if (cell && cell.v && ["DIA", "HORA", "VEH INICIAL", "VEH FINAL"].includes(cell.v)) {
+            cell.s = { fill: { fgColor: { rgb: "00FFFF" } }, font: { bold: true, color: { rgb: "000000" } } };
+        }
+    }
+    XLSX.utils.book_append_sheet(wb, ws1, "Plan");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sheetPolinomioData), "Polinomio");
+
+    const ws3 = XLSX.utils.json_to_sheet(sheetResumenData);
+
+    // Métricas en N1, O1, P1 — headers en fila 1, valores en fila 2
+    // N1 = "Vehículos"     | N2 = total vehículos
+    // O1 = "Promedio de ISO" | O2 = promedio ISO
+    // P1 = "Suma de ISO"   | P2 = suma ISO
+    XLSX.utils.sheet_add_aoa(ws3, [
+        ["Vehículos", "Promedio de ISO", "Suma de ISO"],
+        [metricsData.total, metricsData.prom, metricsData.sum]
+    ], { origin: "N1" });
+
+    // Estilos azul corporativo en los headers N1, O1, P1
+    ["N1", "O1", "P1"].forEach(ref => {
+        if (ws3[ref]) ws3[ref].s = {
+            font: { bold: true, color: { rgb: "FFFFFF" } },
+            fill: { fgColor: { rgb: "0058A3" } }
+        };
+    });
+
+    XLSX.utils.book_append_sheet(wb, ws3, "Resumen");
+    XLSX.writeFile(wb, `1. Simpliroute_Plan_${getFechaManana()} RUTEO.xlsx`);
+}
+
+// BOTÓN 2
+function downloadRouteTo() {
+    if (!sheetPlanData.length) return;
+    let dofiList = [];
+    sheetPlanData.forEach(r => {
+        let t = String(r["_TITULO_INTERNO"]).trim().toUpperCase();
+        if (t !== "INICIO" && t !== "FIN" && r["_DOFI_INTERNO"]) {
+            dofiList.push({ A: r["_DOFI_INTERNO"], B: r["VEH FINAL"] });
+        }
+    });
+    const chunkSize = 1000;
+    const isMulti   = dofiList.length > chunkSize;
+    for (let i = 0; i < dofiList.length; i += chunkSize) {
+        let chunk  = dofiList.slice(i, i + chunkSize);
+        let suffix = isMulti ? `_${(i / chunkSize) + 1}` : '';
+        exportarExcel(chunk, `2. ROUTE TO picking ${getFechaHoy()} entregas ${getFechaManana()}${suffix}.xlsx`, true);
+    }
+}
+
+// BOTÓN 3
+function download3Preola() {
+    if (!dataFlujo1) {
+        alert("Para generar la Preola, primero debes cargar el archivo base en el '1. Pre Ruteo'.");
+        return;
+    }
+    const filtrado = dataFlujo1.filter(row => row['TIPO_VISITA'] === 'PROJECT' || row['TIPO_VISITA'] === 'POST_SALES');
+    if (filtrado.length === 0) return alert('No hay datos de PROYECTOS o POST_SALES en el archivo del 1. Pre Ruteo.');
+    const preolaData = filtrado.map(row => ({
+        A: row['ID_REFERENCIA'],
+        B: row['TIPO_VISITA'] === 'PROJECT' ? 'VEH98' : 'VEH99'
+    }));
+    exportarExcel(preolaData, `3. ROUTE TO PROYECT+ POST SALES picking ${getFechaHoy()} entregas ${getFechaManana()}.xlsx`, true);
+}
+</script>
+
+</body>
+</html>

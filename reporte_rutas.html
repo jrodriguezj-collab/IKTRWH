@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Avance en Ruta - IKEA</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --ikea-blue: #0058a3;
+            --ikea-yellow: #FBD914;
+            --light-bg: #f5f5f5;
+            --text-dark: #333333;
+        }
+
+        body {
+            font-family: 'Noto Sans', Arial, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background-color: var(--ikea-blue);
+            color: var(--ikea-yellow);
+            padding: 20px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            letter-spacing: 1px;
+        }
+        
+        .header-subtitle {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .header-time {
+            font-size: 14px;
+            font-weight: normal;
+            margin-left: 8px;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-top: 5px solid var(--ikea-blue);
+        }
+
+        .card h2 {
+            color: var(--ikea-blue);
+            margin-top: 0;
+            border-bottom: 2px solid var(--light-bg);
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Estilos de archivo y botones */
+        .upload-section {
+            text-align: center;
+            padding: 20px;
+            background: #fff8d6;
+            border: 2px dashed var(--ikea-yellow);
+            border-radius: 8px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background-color: var(--ikea-yellow);
+            color: var(--ikea-blue);
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            display: inline-block;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            background-color: #e6c600;
+            transform: scale(1.05);
+        }
+
+        /* Estilos de Tablas */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        th {
+            background-color: var(--ikea-blue);
+            color: white;
+            padding: 12px;
+            text-align: right;
+            border: 1px solid #004480;
+        }
+        th:first-child { text-align: left; }
+
+        td {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            text-align: right;
+        }
+        td:first-child { text-align: left; }
+
+        .region-row {
+            background-color: #eef5fc;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .region-row:hover {
+            background-color: #dbeaf7;
+        }
+
+        .patente-row td {
+            background-color: white;
+            color: #555;
+        }
+
+        .patente-row td:first-child {
+            padding-left: 40px;
+            position: relative;
+        }
+        
+        .patente-row td:first-child::before {
+            content: '↳';
+            position: absolute;
+            left: 20px;
+            color: #aaa;
+        }
+
+        .toggle-icon {
+            display: inline-block;
+            width: 20px;
+            text-align: center;
+            color: var(--ikea-blue);
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        tfoot th {
+            background-color: #004480;
+            font-weight: bold;
+        }
+
+        /* Resumen */
+        #texto-resumen {
+            white-space: pre-wrap;
+            background: #f9f9f9;
+            padding: 15px;
+            border-left: 4px solid var(--ikea-blue);
+            font-family: monospace;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+
+        /* Controles de Gráfico */
+        .chart-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        select {
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid var(--ikea-blue);
+            border-radius: 4px;
+            outline: none;
+            min-width: 250px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        /* Notificación Toast */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: var(--ikea-blue);
+            color: var(--ikea-yellow);
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 1000;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            opacity: 0;
+            transition: opacity 0.3s, bottom 0.3s;
+        }
+
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Reporte Planificación - IKEA</h1>
+        <div class="header-subtitle">
+            Avance en Ruta <span id="hora-carga" class="header-time"></span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card upload-section">
+            <label for="csvFileInput" class="btn">📂 Cargar Archivo CSV</label>
+            <input type="file" id="csvFileInput" accept=".csv" onchange="handleFileSelect(event)">
+            <p id="file-name" style="margin-top: 15px; font-weight: bold; color: var(--ikea-blue);"></p>
+        </div>
+
+        <div class="card" id="card-resumen" style="display: none;">
+            <h2>
+                📝 Resumen Ejecutivo
+                <button class="btn btn-small" onclick="copiarResumen()">📋 Copiar Resumen</button>
+            </h2>
+            <div id="texto-resumen"></div>
+        </div>
+
+        <div class="card" id="card-numeros" style="display: none;">
+            <h2>📊 Avance en Ruta</h2>
+            <div class="table-container" id="tabla-numeros"></div>
+        </div>
+
+        <div class="card" id="card-porcentajes" style="display: none;">
+            <h2>📈 Avance en Ruta %</h2>
+            <div class="table-container" id="tabla-porcentajes"></div>
+        </div>
+
+        <div class="card" id="card-graficos" style="display: none;">
+            <h2>
+                📈 Gráfico de Avance por Región
+            </h2>
+            <p style="font-size: 14px; color: #666; margin-top: -10px;">💡 <i>Haz clic en la barra de cualquier patente en el gráfico para copiar su nombre.</i></p>
+            
+            <div class="chart-controls">
+                <select id="region-select" onchange="updateChart()">
+                    <option value="">Selecciona una Región...</option>
+                </select>
+                <button class="btn btn-small" id="btn-copy-patentes" style="display:none;" onclick="copiarPatentesRegion()">📋 Copiar Patentes de la Región</button>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="avanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast">Copiado al portapapeles</div>
+
+    <script>
+        let globalData = {};
+        let uniqueEstados = [];
+        let myChart = null;
+
+        // Función para mostrar notificaciones (Toast)
+        function showToast(message) {
+            let toast = document.getElementById("toast");
+            toast.innerText = message;
+            toast.className = "show";
+            setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+
+        // Función para copiar texto al portapapeles
+        function copiarAlPortapapeles(texto, mensajeExito) {
+            navigator.clipboard.writeText(texto).then(() => {
+                showToast(mensajeExito);
+            }).catch(err => {
+                console.error('Error al copiar: ', err);
+                alert("No se pudo copiar el texto. Tu navegador podría estar bloqueándolo.");
+            });
+        }
+
+        function getKey(row, targetKey) {
+            const foundKey = Object.keys(row).find(k => k.trim().toLowerCase() === targetKey.toLowerCase());
+            return foundKey ? row[foundKey] : null;
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('file-name').innerText = "⏳ Procesando archivo...";
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    processData(results.data);
+                    
+                    let now = new Date();
+                    let timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    document.getElementById('hora-carga').innerText = "| Actualizado: " + timeString;
+                    document.getElementById('file-name').innerText = "✅ Archivo cargado con éxito: " + file.name;
+                }
+            });
+        }
+
+        function processData(data) {
+            let processed = {};
+            let estadosSet = new Set();
+
+            data.forEach(row => {
+                let commerce = (getKey(row, 'Commerce') || '').trim();
+                let patente = (getKey(row, 'Patente') || '').trim();
+                let region = (getKey(row, 'Region') || 'Sin Región').trim();
+                let estado = (getKey(row, 'Estado') || 'Sin Estado').trim();
+                let parentOrder = (getKey(row, 'ParentOrder') || '').trim();
+
+                if (commerce.toLowerCase() !== 'ikea' || patente === '') return;
+
+                estadosSet.add(estado);
+
+                if (!processed[region]) {
+                    processed[region] = { orders: new Set(), estados: {}, patentes: {} };
+                }
+                
+                processed[region].orders.add(parentOrder);
+                if (!processed[region].estados[estado]) processed[region].estados[estado] = new Set();
+                processed[region].estados[estado].add(parentOrder);
+
+                if (!processed[region].patentes[patente]) {
+                    processed[region].patentes[patente] = { orders: new Set(), estados: {} };
+                }
+
+                processed[region].patentes[patente].orders.add(parentOrder);
+                if (!processed[region].patentes[patente].estados[estado]) processed[region].patentes[patente].estados[estado] = new Set();
+                processed[region].patentes[patente].estados[estado].add(parentOrder);
+            });
+
+            uniqueEstados = Array.from(estadosSet).sort();
+            globalData = processed;
+
+            renderAll();
+        }
+
+        function renderAll() {
+            document.getElementById('card-resumen').style.display = 'block';
+            document.getElementById('card-numeros').style.display = 'block';
+            document.getElementById('card-porcentajes').style.display = 'block';
+            document.getElementById('card-graficos').style.display = 'block';
+
+            generarResumen();
+            document.getElementById('tabla-numeros').innerHTML = buildTableHTML(globalData, false);
+            document.getElementById('tabla-porcentajes').innerHTML = buildTableHTML(globalData, true);
+            
+            initChartSelector();
+        }
+
+        // --- SECCIÓN DE RESUMEN ---
+        function generarResumen() {
+            let resumen = "";
+            let regions = Object.keys(globalData).sort();
+
+            regions.forEach(region => {
+                let rData = globalData[region];
+                let upperReg = region.toUpperCase();
+                
+                // Filtro para mostrar SOLO Región Metropolitana y Valparaíso
+                if (upperReg.includes('METROPOLITANA') || upperReg.includes('VALPARAISO') || upperReg.includes('VALPARAÍSO')) {
+                    let totalRegion = rData.orders.size;
+                    let patentesCount = Object.keys(rData.patentes).length;
+
+                    resumen += `📍 [${region.toUpperCase()}]\n`;
+                    resumen += `   Total: ${totalRegion} órdenes asignadas a ${patentesCount} vehículos.\n`;
+                    
+                    let estadosStr = [];
+                    uniqueEstados.forEach(e => {
+                        let count = rData.estados[e] ? rData.estados[e].size : 0;
+                        if (count > 0) {
+                            let pct = ((count / totalRegion) * 100).toFixed(1);
+                            estadosStr.push(`   - ${e}: ${count} (${pct}%)`);
+                        }
+                    });
+                    
+                    if(estadosStr.length > 0) {
+                        resumen += estadosStr.join("\n") + "\n";
+                    }
+                    resumen += "\n";
+                }
+            });
+
+            // Si no encuentra nada (por si el CSV no tiene esas regiones)
+            if (resumen === "") {
+                resumen = "No se encontraron datos para la Región Metropolitana ni Región de Valparaíso en este archivo.";
+            }
+
+            document.getElementById('texto-resumen').innerText = resumen.trim();
+        }
+
+        function copiarResumen() {
+            let texto = document.getElementById('texto-resumen').innerText;
+            copiarAlPortapapeles(texto, "✅ ¡Resumen copiado!");
+        }
+
+        // --- SECCIÓN DE TABLAS ---
+        function buildTableHTML(data, isPercent) {
+            let html = `<table><thead><tr><th>Fila (Región / Patente)</th>`;
+            uniqueEstados.forEach(e => html += `<th>${e}</th>`);
+            html += `<th>Total General</th></tr></thead><tbody>`;
+
+            let colTotals = {};
+            uniqueEstados.forEach(e => colTotals[e] = new Set());
+            let grandTotal = new Set();
+
+            let regions = Object.keys(data).sort();
+
+            regions.forEach((region, rIdx) => {
+                let rData = data[region];
+                let rTotal = rData.orders.size;
+
+                if (!isPercent) {
+                    uniqueEstados.forEach(e => {
+                        if(rData.estados[e]) {
+                            rData.estados[e].forEach(o => {
+                                colTotals[e].add(o);
+                                grandTotal.add(o);
+                            });
+                        }
+                    });
+                }
+
+                let rowClassId = `row-${isPercent ? 'pct' : 'num'}-${rIdx}`;
+                html += `<tr class="region-row" onclick="toggleRows('${rowClassId}')">`;
+                html += `<td><span class="toggle-icon" id="icon-${rowClassId}">[+]</span> ${region}</td>`;
+
+                uniqueEstados.forEach(e => {
+                    let val = rData.estados[e] ? rData.estados[e].size : 0;
+                    let display = '';
+                    if (val > 0) {
+                        display = isPercent ? ((val / rTotal) * 100).toFixed(1) + '%' : val;
+                    }
+                    html += `<td>${display}</td>`;
+                });
+                html += `<td><b>${rTotal > 0 ? (isPercent ? '100%' : rTotal) : ''}</b></td></tr>`;
+
+                let patentes = Object.keys(rData.patentes).sort();
+                patentes.forEach(patente => {
+                    let pData = rData.patentes[patente];
+                    let pTotal = pData.orders.size;
+
+                    html += `<tr class="patente-row ${rowClassId}" style="display: none;">`;
+                    html += `<td>${patente}</td>`;
+
+                    uniqueEstados.forEach(e => {
+                        let val = pData.estados[e] ? pData.estados[e].size : 0;
+                        let display = '';
+                        if (val > 0) {
+                            display = isPercent ? ((val / pTotal) * 100).toFixed(1) + '%' : val;
+                        }
+                        html += `<td>${display}</td>`;
+                    });
+                    html += `<td><b>${pTotal > 0 ? (isPercent ? '100%' : pTotal) : ''}</b></td></tr>`;
+                });
+            });
+
+            html += `</tbody>`;
+
+            if (!isPercent) {
+                html += `<tfoot><tr><th>Total General Columnas</th>`;
+                uniqueEstados.forEach(e => {
+                    let colSize = colTotals[e].size;
+                    html += `<th>${colSize > 0 ? colSize : ''}</th>`;
+                });
+                html += `<th>${grandTotal.size > 0 ? grandTotal.size : ''}</th></tr></tfoot>`;
+            }
+
+            html += `</table>`;
+            return html;
+        }
+
+        function toggleRows(className) {
+            let rows = document.querySelectorAll(`.${className}`);
+            let icon = document.getElementById(`icon-${className}`);
+            let isHidden = rows[0].style.display === 'none';
+
+            rows.forEach(row => {
+                row.style.display = isHidden ? 'table-row' : 'none';
+            });
+            icon.innerText = isHidden ? '[-]' : '[+]';
+        }
+
+        // --- SECCIÓN DE GRÁFICOS ---
+        function initChartSelector() {
+            let select = document.getElementById('region-select');
+            select.innerHTML = '<option value="">Selecciona una Región para graficar...</option>';
+            
+            Object.keys(globalData).sort().forEach(region => {
+                select.innerHTML += `<option value="${region}">${region}</option>`;
+            });
+        }
+
+        function copiarPatentesRegion() {
+            let region = document.getElementById('region-select').value;
+            if (!region || !globalData[region]) return;
+
+            let patentesNombres = Object.keys(globalData[region].patentes).sort();
+            let texto = patentesNombres.join('\n');
+            copiarAlPortapapeles(texto, `✅ ¡${patentesNombres.length} patentes copiadas!`);
+        }
+
+        // Asignación de colores
+        function getColorForEstado(estado) {
+            let e = estado.toLowerCase();
+            if (e.includes('terminado')) return '#4CAF50'; // Verde
+            if (e.includes('pendiente')) return '#FBD914'; // Amarillo
+            if (e.includes('en ruta')) return '#F44336'; // Rojo
+            if (e.includes('planificado')) return '#FF9800'; // Naranja (agrupa ambos)
+            return '#0058a3'; // Azul por defecto
+        }
+
+        function updateChart() {
+            let region = document.getElementById('region-select').value;
+            let btnCopy = document.getElementById('btn-copy-patentes');
+            
+            if (!region) {
+                btnCopy.style.display = 'none';
+                if (myChart) myChart.destroy();
+                return;
+            }
+
+            btnCopy.style.display = 'inline-block';
+
+            let ctx = document.getElementById('avanceChart').getContext('2d');
+            if (myChart) myChart.destroy();
+
+            let patentesData = globalData[region].patentes;
+            let patentesNombres = Object.keys(patentesData).sort();
+
+            // Mapear los estados para agrupar "Planificado" y "Planificado En Simpliroute"
+            let chartEstadosMap = {};
+            uniqueEstados.forEach(estado => {
+                let norm = estado.trim().toLowerCase();
+                let chartName = estado;
+                
+                // Agrupación exclusiva para el gráfico
+                if (norm === 'planificado' || norm === 'planificado en simpliroute') {
+                    chartName = 'Planificado'; 
+                }
+                
+                if (!chartEstadosMap[chartName]) {
+                    chartEstadosMap[chartName] = [];
+                }
+                chartEstadosMap[chartName].push(estado);
+            });
+
+            let chartLabels = Object.keys(chartEstadosMap).sort();
+
+            let datasets = chartLabels.map(chartEstado => {
+                let color = getColorForEstado(chartEstado);
+                return {
+                    label: chartEstado,
+                    backgroundColor: color,
+                    data: patentesNombres.map(p => {
+                        let sum = 0;
+                        // Sumamos los valores de todos los estados originales que corresponden a este grupo
+                        chartEstadosMap[chartEstado].forEach(origEstado => {
+                            if (patentesData[p].estados[origEstado]) {
+                                sum += patentesData[p].estados[origEstado].size;
+                            }
+                        });
+                        return sum;
+                    })
+                };
+            });
+
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: patentesNombres,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: (e, activeEls, chart) => {
+                        if (activeEls.length > 0) {
+                            const dataIndex = activeEls[0].index;
+                            const label = chart.data.labels[dataIndex];
+                            copiarAlPortapapeles(label, `✅ Patente ${label} copiada`);
+                        }
+                    },
+                    plugins: {
+                        tooltip: { mode: 'index', intersect: false },
+                        legend: { position: 'bottom' }
+                    },
+                    scales: {
+                        x: { stacked: true, title: { display: true, text: 'Patentes' } },
+                        y: { stacked: true, title: { display: true, text: 'Recuento de Órdenes' }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
