@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISOs Faltantes Geo — IKEA Tools</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #0d1117;
+  --surface:    #161b22;
+  --surface2:   #1c2128;
+  --surface3:   #22272e;
+  --border:     #30363d;
+  --border2:    #3d444d;
+  --blue:       #0051BA;
+  --blue-dark:  #003A8C;
+  --blue-mid:   #1a6dd4;
+  --yellow:     #FFDA1A;
+  --yellow-dk:  #e6c400;
+  --green:      #3fb950;
+  --red:        #f85149;
+  --orange:     #f0883e;
+  --text:       #e6edf3;
+  --text-muted: #8b949e;
+  --text-dim:   #656d76;
+  --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --r:  8px;
+  --rs: 6px;
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── HEADER ── */
+.ik-header {
+  background: linear-gradient(135deg, var(--blue-dark), var(--blue) 55%, var(--blue-mid));
+  padding: 0 20px;
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 3px solid var(--yellow);
+  height: 52px; flex-shrink: 0; position: relative; z-index: 10;
+}
+.ik-header-left { display: flex; align-items: center; gap: 12px; }
+.ik-header-right { display: flex; align-items: center; gap: 7px; }
+.ik-header h1 { font-size: 15px; font-weight: 700; letter-spacing: 1.5px; color: var(--yellow); text-transform: uppercase; }
+.ik-header-sub { font-size: 10px; color: rgba(255,255,255,.45); letter-spacing: .5px; }
+.ik-back {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600; color: rgba(255,255,255,.55);
+  text-decoration: none; padding: 4px 9px; border-radius: var(--rs);
+  border: 1px solid rgba(255,255,255,.15); transition: all .15s;
+}
+.ik-back:hover { color: var(--yellow); border-color: rgba(255,218,26,.4); background: rgba(255,218,26,.07); }
+
+/* ── LAYOUT ── */
+.ik-app { display: flex; height: calc(100vh - 52px); }
+.ik-sidebar {
+  width: 280px; min-width: 280px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto; display: flex; flex-direction: column;
+}
+.ik-main { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+
+/* ── SIDEBAR ── */
+.sb-section { padding: 13px 13px 0; display: flex; flex-direction: column; gap: 8px; }
+.sb-section + .sb-section { border-top: 1px solid var(--border); margin-top: 13px; padding-top: 13px; }
+.sb-last { padding-bottom: 14px; }
+.lbl { font-size: 9px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; }
+
+/* ── UPLOAD ZONE ── */
+.ik-upload-zone {
+  border: 2px dashed var(--border); border-radius: var(--r);
+  padding: 14px 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 5px; cursor: pointer; transition: all .18s; text-align: center; background: var(--bg);
+}
+.ik-upload-zone:hover, .ik-upload-zone.drag { border-color: var(--blue); background: rgba(0,81,186,.04); }
+.ik-upload-zone.loaded { border-color: var(--green); border-style: solid; background: rgba(63,185,80,.04); }
+.upload-icon { font-size: 22px; opacity: .7; }
+.upload-lbl { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+.upload-sub { font-size: 10px; color: var(--text-dim); font-family: var(--mono); }
+#fileInput { display: none; }
+
+/* ── INPUTS ── */
+input[type="date"], input[type="text"] {
+  width: 100%; background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--rs); color: var(--text); font-family: var(--mono);
+  font-size: 11px; padding: 6px 8px; outline: none; transition: border-color .12s;
+}
+input[type="date"]:focus, input[type="text"]:focus { border-color: var(--blue); }
+
+/* ── BUTTONS ── */
+button {
+  font-family: var(--sans); font-weight: 600; font-size: 12px;
+  border: none; border-radius: var(--rs); cursor: pointer;
+  padding: 6px 12px; transition: all .12s;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+button:disabled { opacity: .35; cursor: not-allowed; }
+.btn-blue   { background: var(--blue); color: #fff; }
+.btn-blue:hover:not(:disabled) { background: var(--blue-mid); transform: translateY(-1px); }
+.btn-yellow { background: var(--yellow); color: #111; font-weight: 700; }
+.btn-yellow:hover:not(:disabled) { background: var(--yellow-dk); }
+.btn-ghost  { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+.btn-ghost:hover:not(:disabled) { background: var(--surface2); color: var(--text); }
+.btn-full { width: 100%; justify-content: center; }
+.btn-sm { padding: 4px 9px; font-size: 11px; }
+
+/* ── STAT PILLS ── */
+.stat-row { display: flex; gap: 6px; }
+.stat-pill {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--rs); padding: 6px 9px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.stat-num { font-size: 15px; font-weight: 800; font-family: var(--mono); line-height: 1; }
+.stat-lbl { font-size: 9px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+.stat-num.blue   { color: #7bb8ff; }
+.stat-num.green  { color: var(--green); }
+.stat-num.red    { color: var(--red); }
+.stat-num.orange { color: var(--orange); }
+
+/* ── INFO BOX ── */
+.ik-info-box {
+  background: rgba(0,81,186,.08); border: 1px solid rgba(0,81,186,.22);
+  border-radius: var(--rs); padding: 7px 10px;
+  font-size: 10px; color: #7bb8ff; line-height: 1.6;
+}
+
+/* ── PROGRESS ── */
+.progress-wrap { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; display: none; }
+.progress-wrap.active { display: block; }
+.progress-fill { height: 100%; background: var(--blue); width: 0%; transition: width .3s; }
+
+/* ── STATUS BAR ── */
+.status-bar {
+  display: none; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--rs); padding: 7px 10px; font-family: var(--mono);
+  font-size: 11px; color: var(--text-muted); align-items: center; gap: 6px;
+}
+.status-bar.active { display: flex; }
+.status-bar.ok  { border-color: var(--green); color: var(--green); }
+.status-bar.err { border-color: var(--red);   color: #ff7b72; }
+.status-bar.warn{ border-color: var(--orange); color: var(--orange); }
+
+/* ── MAIN ── */
+.main-inner { flex: 1; overflow: hidden; display: flex; flex-direction: column; padding: 12px 14px; gap: 8px; }
+
+/* ── ACTIVE FILTERS BAR ── */
+.ik-filters-bar {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--rs); padding: 6px 10px;
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  font-size: 11px; flex-shrink: 0; min-height: 32px;
+}
+.ik-no-filters { color: var(--text-dim); font-size: 10px; font-style: italic; }
+.fchip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(0,81,186,.2); border: 1px solid rgba(0,81,186,.4);
+  border-radius: 20px; padding: 2px 8px; font-size: 10px;
+  cursor: pointer; color: #7bb8ff; transition: all .12s;
+}
+.fchip:hover { background: rgba(248,81,73,.2); border-color: var(--red); color: #ff7b72; }
+.fchip-col { font-weight: 700; }
+
+/* ── TOOLBAR ── */
+.toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; flex-shrink: 0;
+}
+.result-info {
+  font-size: 11px; color: var(--text-muted); font-family: var(--mono);
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--rs); padding: 4px 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.cnt-yellow { color: var(--yellow); font-weight: 700; }
+.cnt-red    { color: var(--red);    font-weight: 700; }
+
+/* ── TABLE WRAP ── */
+.table-wrap {
+  flex: 1; overflow: auto;
+  border: 1px solid var(--border); border-radius: var(--r);
+  background: var(--surface);
+}
+
+table { border-collapse: collapse; min-width: 100%; font-size: 12px; }
+
+thead th {
+  background: var(--surface3); border: 1px solid var(--border);
+  padding: 0; text-align: left; white-space: nowrap;
+  position: sticky; top: 0; z-index: 5;
+}
+.th-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 6px; padding: 8px 10px; min-width: 80px;
+}
+.th-inner span { font-weight: 700; font-size: 10px; letter-spacing: .5px; text-transform: uppercase; color: var(--text-muted); }
+thead th:first-child .th-inner span { color: var(--yellow); }
+
+/* ── TH FILTER BTN ── */
+.th-filter-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 3px;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--text-dim); font-size: 10px; flex-shrink: 0;
+  transition: all .1s; padding: 0; font-family: var(--sans);
+}
+.th-filter-btn:hover  { background: var(--border2); color: var(--text); }
+.th-filter-btn.active { background: rgba(0,81,186,.35); color: var(--yellow); }
+
+/* ── CFP POPUP ── */
+.ik-cfp {
+  position: fixed; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: var(--r); box-shadow: 0 12px 32px rgba(0,0,0,.6);
+  z-index: 1000; width: 240px; display: none; flex-direction: column; overflow: hidden;
+}
+.ik-cfp.open { display: flex; }
+.cfp-head { padding: 10px 12px 8px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+.cfp-title { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+.cfp-sort-row { display: flex; gap: 4px; }
+.cfp-search {
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--rs);
+  color: var(--text); font-family: var(--mono); font-size: 11px;
+  padding: 5px 8px; width: 100%; outline: none;
+}
+.cfp-search:focus { border-color: var(--blue); }
+.cfp-actions { display: flex; gap: 5px; }
+.cfp-list { max-height: 220px; overflow-y: auto; padding: 4px 0; }
+.cfp-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 12px; cursor: pointer; font-size: 12px; transition: background .08s;
+  user-select: none;
+}
+.cfp-item:hover { background: var(--surface3); }
+.cfp-item input[type="checkbox"] { accent-color: var(--blue); flex-shrink: 0; }
+.cfp-item label { cursor: pointer; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; font-family: var(--mono); font-size: 11px; }
+.cfp-item.blank label { color: var(--text-dim); font-style: italic; }
+.cfp-footer { padding: 8px 12px; border-top: 1px solid var(--border); display: flex; gap: 5px; }
+
+/* ── TABLE ROWS ── */
+tbody td {
+  border: 1px solid var(--border); padding: 7px 10px;
+  color: var(--text); font-family: var(--mono); font-size: 11px;
+  vertical-align: middle;
+}
+tbody td:first-child { font-weight: 700; color: #7bb8ff; }
+tbody tr:hover td { background: rgba(255,255,255,.02); }
+
+/* Fila duplicada → solo rojo */
+tbody tr.row-dup td { background: rgba(248,81,73,.08) !important; }
+tbody tr.row-dup td:first-child { border-left: 3px solid var(--red); color: #ff7b72; }
+
+/* ── BADGES ── */
+.badge-alerta {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(248,81,73,.15); color: #ff7b72;
+  border: 1px solid rgba(248,81,73,.3);
+  padding: 2px 7px; border-radius: 4px;
+  font-size: 10px; font-weight: 700; white-space: nowrap;
+}
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; min-height: 200px; gap: 12px; color: var(--text-dim); text-align: center;
+}
+.empty-icon { font-size: 36px; opacity: .5; }
+.empty-title { font-size: 14px; font-weight: 600; color: var(--text-muted); }
+.empty-sub { font-size: 11px; max-width: 320px; line-height: 1.7; }
+
+/* ── LOADER SPINNER ── */
+.loader {
+  display: inline-block; width: 11px; height: 11px;
+  border: 2px solid var(--border); border-top-color: var(--blue);
+  border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── NOTIFICATION ── */
+.ik-notif {
+  display: none; position: fixed; top: 62px; right: 18px; z-index: 9999;
+  padding: 9px 15px; border-radius: var(--rs); font-weight: 600; font-size: 12px;
+  max-width: 340px; animation: slideIn .18s ease; box-shadow: 0 8px 24px rgba(0,0,0,.5);
+}
+@keyframes slideIn { from { opacity:0; transform:translateX(12px); } to { opacity:1; transform:translateX(0); } }
+.notif-ok   { background: rgba(63,185,80,.12);  color: var(--green); border: 1px solid var(--green); }
+.notif-err  { background: rgba(248,81,73,.15);  color: #ff7b72;      border: 1px solid var(--red);   }
+.notif-warn { background: rgba(240,136,62,.15); color: var(--orange); border: 1px solid var(--orange); }
+
+/* ── COPY FLASH ── */
+.copy-flash {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--green); color: #0d1117; font-weight: 700; font-size: 12px;
+  padding: 8px 20px; border-radius: 20px; z-index: 9999;
+  pointer-events: none; opacity: 0; transition: opacity .25s;
+  box-shadow: 0 4px 20px rgba(63,185,80,.4);
+}
+.copy-flash.show { opacity: 1; }
+
+/* ── IKEA EXCEL SELECTION ── */
+.ik-sel-cell {
+  cursor: cell !important;
+  user-select: none !important;
+  position: relative;
+  transition: background .07s;
+}
+.ik-sel-cell.ik-selected {
+  background: rgba(0,81,186,.20) !important;
+  outline: 1px solid rgba(0,81,186,.55);
+  outline-offset: -1px;
+}
+.ik-sel-cell.ik-anchor {
+  background: rgba(0,81,186,.32) !important;
+  outline: 2px solid #0051BA !important;
+  outline-offset: -2px;
+  box-shadow: inset 0 0 14px rgba(0,81,186,.12), 0 0 0 1px rgba(0,81,186,.3);
+}
+/* glow flash on copy */
+.ik-copy-glow {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%) scale(.92);
+  background: rgba(63,185,80,.12);
+  border: 1px solid #3fb950;
+  color: #3fb950;
+  font-weight: 700; font-size: 13px;
+  padding: 10px 26px;
+  border-radius: 9px;
+  z-index: 99999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s, transform .18s;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 32px rgba(63,185,80,.28);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+.ik-copy-glow.ik-glow-show {
+  opacity: 1;
+  transform: translate(-50%,-50%) scale(1);
+}
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="ik-header">
+  <div class="ik-header-left">
+    <span style="font-size:20px">📍</span>
+    <div>
+      <h1>ISOs Faltantes Geo</h1>
+      <div class="ik-header-sub">Revisión sin conductor · Cruce SimpliRoute + Base</div>
+    </div>
+  </div>
+  <div class="ik-header-right">
+    <a class="ik-back" href="index.html">← Inicio</a>
+  </div>
+</div>
+
+<!-- CFP POPUP (column filter) -->
+<div class="ik-cfp" id="cfp">
+  <div class="cfp-head">
+    <div class="cfp-title" id="cfp-title">Filtrar columna</div>
+    <div class="cfp-sort-row">
+      <button class="btn-blue btn-sm" style="flex:1;font-size:10px" onclick="cfpSort('asc')">A → Z</button>
+      <button class="btn-blue btn-sm" style="flex:1;font-size:10px" onclick="cfpSort('desc')">Z → A</button>
+      <button class="btn-ghost btn-sm" style="flex:1;font-size:10px" onclick="cfpSort(null)">✕ Orden</button>
+    </div>
+    <input class="cfp-search" id="cfp-search" placeholder="Buscar..." oninput="cfpSearch(this.value)">
+    <div class="cfp-actions">
+      <button class="btn-blue btn-sm" style="flex:1" onclick="cfpSelAll(true)">✓ Todas</button>
+      <button class="btn-ghost btn-sm" style="flex:1" onclick="cfpSelAll(false)">✕ Ninguna</button>
+    </div>
+  </div>
+  <div class="cfp-list" id="cfp-list"></div>
+  <div class="cfp-footer">
+    <button class="btn-blue btn-sm" style="flex:1" onclick="cfpApply()">Aplicar</button>
+    <button class="btn-ghost btn-sm" style="flex:1" onclick="cfpClose()">Cancelar</button>
+  </div>
+</div>
+
+<div class="ik-app">
+
+  <!-- SIDEBAR -->
+  <div class="ik-sidebar">
+
+    <!-- Token -->
+    <div class="sb-section">
+      <div class="lbl">Token SimpliRoute</div>
+      <input type="text" id="tokenInput" value="b388c699ed3bc4ecd2f748383e40b94ff650a8f6" placeholder="Token API…">
+    </div>
+
+    <!-- CORS warning — shown only when opening from file:// -->
+    <div class="sb-section" id="corsWarn" style="display:none">
+      <div style="background:rgba(240,136,62,.1);border:1px solid rgba(240,136,62,.35);border-radius:6px;padding:10px 11px;font-size:10px;color:var(--orange);line-height:1.7;">
+        <strong>⚠️ Modo archivo local detectado</strong><br>
+        El navegador bloquea llamadas a la API (CORS).<br><br>
+        <strong>Solución rápida:</strong><br>
+        1. Instala la extensión <strong>Live Server</strong> en VSCode<br>
+        2. Clic derecho en el HTML → <em>Open with Live Server</em><br>
+        3. O ejecuta en terminal:<br>
+        <code style="background:var(--bg);padding:2px 5px;border-radius:3px;display:block;margin-top:4px;">npx serve .</code>
+      </div>
+    </div>
+
+    <!-- Fecha -->
+    <div class="sb-section">
+      <div class="lbl">Fecha de consulta</div>
+      <input type="date" id="fechaInput">
+    </div>
+
+    <!-- Archivo Base -->
+    <div class="sb-section">
+      <div class="lbl">Archivo Base (Excel / CSV)</div>
+      <div class="ik-upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">📄</div>
+        <div class="upload-lbl" id="uploadLbl">Clic o arrastra tu archivo base</div>
+        <div class="upload-sub" id="uploadSub">Commerce · ParentOrder · Patente · Estado</div>
+      </div>
+      <input type="file" id="fileInput" accept=".xlsx,.csv,.tsv">
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="sb-section" id="statsSection" style="display:none">
+      <div class="lbl">Archivo cargado</div>
+      <div class="stat-row">
+        <div class="stat-pill"><div class="stat-num blue"  id="sTotal">0</div><div class="stat-lbl">Total</div></div>
+        <div class="stat-pill"><div class="stat-num green" id="sIkea">0</div><div class="stat-lbl">IKEA</div></div>
+      </div>
+    </div>
+
+    <!-- Botones -->
+    <div class="sb-section">
+      <div id="statusBar" class="status-bar"></div>
+      <div class="progress-wrap" id="progressWrap"><div class="progress-fill" id="progressFill"></div></div>
+      <button class="btn-blue btn-full" id="btnAnalizar" disabled onclick="iniciarAnalisis()">
+        ▶ Iniciar Análisis
+      </button>
+      <button class="btn-ghost btn-full btn-sm" id="btnReset" onclick="resetTodo()">↺ Reiniciar</button>
+    </div>
+
+    <!-- Resultados stats -->
+    <div class="sb-section sb-last" id="resSection" style="display:none">
+      <div class="lbl">Resultados</div>
+      <div class="stat-row">
+        <div class="stat-pill"><div class="stat-num orange" id="rTotal">0</div><div class="stat-lbl">Sin conductor</div></div>
+        <div class="stat-pill"><div class="stat-num red"    id="rDup">0</div><div class="stat-lbl">Duplicadas</div></div>
+      </div>
+      <button class="btn-yellow btn-full" id="btnCopiar" onclick="copiarTabla()">📋 Copiar tabla</button>
+    </div>
+
+  </div>
+
+  <!-- MAIN -->
+  <div class="ik-main">
+    <div class="main-inner">
+
+      <!-- Active filters bar -->
+      <div class="ik-filters-bar" id="activeFiltersBar">
+        <span class="ik-no-filters">Sin filtros activos — haz clic en ▼ de cualquier columna para filtrar</span>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar" id="toolbar" style="display:none">
+        <div class="result-info">
+          <span>Mostrando:</span>
+          <span class="cnt-yellow" id="cntVisible">0</span>
+          <span style="color:var(--border2)">de</span>
+          <span class="cnt-yellow" id="cntTotal">0</span>
+          <span>registros</span>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap" id="tableWrap">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">📍</div>
+          <div class="empty-title">Sin datos aún</div>
+          <div class="empty-sub">Carga el archivo base, configura el token y la fecha, luego haz clic en <strong>Iniciar Análisis</strong>.</div>
+        </div>
+        <table id="tablaResultado" style="display:none">
+          <thead>
+            <tr>
+              <th><div class="th-inner"><span>ISO</span>        <button class="th-filter-btn" onclick="openCfp('ISO',this)"        title="Filtrar">▼</button></div></th>
+              <th><div class="th-inner"><span>Patente</span>    <button class="th-filter-btn" onclick="openCfp('PATENTE',this)"    title="Filtrar">▼</button></div></th>
+              <th><div class="th-inner"><span>Estado</span>     <button class="th-filter-btn" onclick="openCfp('ESTADO',this)"     title="Filtrar">▼</button></div></th>
+              <th><div class="th-inner"><span>Vehículo Simpli</span><button class="th-filter-btn" onclick="openCfp('VEHICULO',this)" title="Filtrar">▼</button></div></th>
+              <th><div class="th-inner"><span>Análisis</span>   <button class="th-filter-btn" onclick="openCfp('ANALISIS',this)"   title="Filtrar">▼</button></div></th>
+            </tr>
+          </thead>
+          <tbody id="tablaBody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="ik-notif" id="notif"></div>
+<div class="copy-flash" id="copyFlash">✓ Tabla copiada</div>
+
+<script src="xlsx_min.js"></script>
+<script>
+// ══════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════
+const COLS = ['ISO','PATENTE','ESTADO','VEHICULO','ANALISIS'];
+
+let masterData   = [];   // full result set
+let filteredData = [];
+let baseData     = null;
+let colFilters   = {};
+let sortCol      = null;
+let sortDir      = null;
+
+// CFP state
+let cfp_col     = null;
+let cfp_all     = [];
+let cfp_pending = new Set();
+let cfp_btn_el  = null;
+
+// ── DOM refs ──
+const tokenInput    = document.getElementById('tokenInput');
+const fechaInput    = document.getElementById('fechaInput');
+const fileInput     = document.getElementById('fileInput');
+const uploadZone    = document.getElementById('uploadZone');
+const uploadLbl     = document.getElementById('uploadLbl');
+const uploadSub     = document.getElementById('uploadSub');
+const btnAnalizar   = document.getElementById('btnAnalizar');
+const statusBar     = document.getElementById('statusBar');
+const progressWrap  = document.getElementById('progressWrap');
+const progressFill  = document.getElementById('progressFill');
+const tablaBody     = document.getElementById('tablaBody');
+const tablaResultado= document.getElementById('tablaResultado');
+const emptyState    = document.getElementById('emptyState');
+const toolbar       = document.getElementById('toolbar');
+const cntVisible    = document.getElementById('cntVisible');
+const cntTotal      = document.getElementById('cntTotal');
+
+// Today in LOCAL timezone (not UTC — avoids off-by-one in Chile UTC-3/UTC-4)
+const _now  = new Date();
+const today = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}-${String(_now.getDate()).padStart(2,'0')}`;
+fechaInput.value = today;
+
+// Detect file:// protocol and show CORS warning
+if (window.location.protocol === 'file:') {
+  document.getElementById('corsWarn').style.display = '';
+}
+
+// ══════════════════════════════════════
+//  FILE HANDLING
+// ══════════════════════════════════════
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('drag');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+        if (typeof XLSX === 'undefined') { notify('xlsx_min.js no encontrado', 'err'); return; }
+        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+        baseData = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+      } else {
+        const text = e.target.result;
+        const lines = text.split(/\r?\n/).filter(Boolean);
+        const sep = detectSep(lines[0]);
+        const headers = parseRow(lines[0], sep);
+        baseData = lines.slice(1).map(line => {
+          const vals = parseRow(line, sep);
+          const obj = {};
+          headers.forEach((h, i) => { obj[h] = vals[i] ?? ''; });
+          return obj;
+        });
+      }
+
+      // Count IKEA rows
+      const keys = Object.keys(baseData[0] || {});
+      const colCom = keys.find(k => k.toLowerCase() === 'commerce');
+      const ikeaCount = colCom ? baseData.filter(r => String(r[colCom]||'').toUpperCase().trim() === 'IKEA').length : baseData.length;
+
+      document.getElementById('sTotal').textContent = baseData.length.toLocaleString();
+      document.getElementById('sIkea').textContent  = ikeaCount.toLocaleString();
+      document.getElementById('statsSection').style.display = '';
+      uploadZone.classList.add('loaded');
+      uploadLbl.textContent = `✓ ${file.name}`;
+      uploadSub.textContent = `${baseData.length} filas · ${ikeaCount} IKEA`;
+      btnAnalizar.disabled = false;
+      notify(`Archivo cargado · ${baseData.length} filas`, 'ok');
+    } catch(err) {
+      notify('Error leyendo archivo: ' + err.message, 'err');
+    }
+  };
+  if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) reader.readAsArrayBuffer(file);
+  else reader.readAsText(file, 'UTF-8');
+}
+
+function detectSep(line) {
+  const t = (line.match(/\t/g)||[]).length;
+  const s = (line.match(/;/g)||[]).length;
+  const c = (line.match(/,/g)||[]).length;
+  if (t > s && t > c) return '\t';
+  return s > c ? ';' : ',';
+}
+
+function parseRow(line, sep) {
+  const res = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQ = !inQ; }
+    else if (c === sep && !inQ) { res.push(cur.trim().replace(/^"|"$/g,'')); cur = ''; }
+    else { cur += c; }
+  }
+  res.push(cur.trim().replace(/^"|"$/g,''));
+  return res;
+}
+
+// ══════════════════════════════════════
+//  API
+// ══════════════════════════════════════
+
+
+const BASE_URL    = 'https://api.simpliroute.com';
+
+// Múltiples proxies CORS como fallback
+const CORS_PROXIES = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+  url => `https://proxy.cors.sh/${url}`,
+];
+
+async function apiGet(endpoint, params = {}) {
+  const token = tokenInput.value.trim();
+  const target = new URL(BASE_URL + endpoint);
+  Object.entries(params).forEach(([k, v]) => target.searchParams.append(k, v));
+  const directUrl = target.toString();
+
+  // Intentar directo primero
+  const attempts = [
+    { url: directUrl, headers: { 'Authorization': `Token ${token}` } },
+    ...CORS_PROXIES.map(fn => ({ url: fn(directUrl), headers: { 'Authorization': `Token ${token}`, 'x-requested-with': 'XMLHttpRequest' } }))
+  ];
+
+  for (const attempt of attempts) {
+    try {
+      const r = await fetch(attempt.url, { headers: attempt.headers });
+      if (r.status === 401) { setStatus('❌ Token inválido (401)', 'err'); return null; }
+      if (r.status === 403) { setStatus('❌ Acceso denegado (403)', 'err'); return null; }
+      if (!r.ok) continue; // try next proxy
+      const data = await r.json();
+      if (Array.isArray(data)) return data;
+      if (data && Array.isArray(data.results)) return data.results;
+      return data;
+    } catch (e) {
+      console.warn('apiGet intento fallido:', attempt.url.substring(0,60), e.message);
+    }
+  }
+
+  setStatus('❌ No se pudo conectar a SimpliRoute (CORS). Abre la app desde un servidor web (ej: Live Server en VSCode).', 'err');
+  return null;
+}
+
+async function workerDetalle(visit) {
+  const d = await apiGet(`/v1/plans/visits/${visit.id}/detail/`) || {};
+  return {
+    ISO:              String(visit.title || 'S/N').trim(),
+    VEHICULO_SIMPLI:  String(d.vehicle_name || visit.vehicle_name || '').trim(),
+    CONDUCTOR_SIMPLI: String(d.driver_name  || '').trim(),
+  };
+}
+
+async function obtenerDataSimpli(fecha) {
+  const visits = await apiGet('/v1/routes/visits/', { planned_date: fecha });
+  if (visits === null) return null;       // propagate API error
+  if (!visits.length) return [];
+  setProgress(10);
+  const CHUNK = 20;
+  const result = [];
+  for (let i = 0; i < visits.length; i += CHUNK) {
+    const batch = visits.slice(i, i + CHUNK);
+    result.push(...await Promise.all(batch.map(workerDetalle)));
+    setProgress(10 + 70 * ((i + CHUNK) / visits.length));
+  }
+  return result;
+}
+
+// ══════════════════════════════════════
+//  ANALYSIS
+// ══════════════════════════════════════
+async function iniciarAnalisis() {
+  const token = tokenInput.value.trim();
+  if (!token || token.includes('PEGA_AQUI')) { notify('Falta el Token de SimpliRoute', 'err'); return; }
+  if (!baseData) { notify('Carga primero el archivo base', 'err'); return; }
+
+  btnAnalizar.disabled = true;
+  colFilters = {}; sortCol = null; sortDir = null;
+  setStatus('<span class="loader"></span> Consultando SimpliRoute…', 'active');
+  setProgress(5);
+
+  const fecha = fechaInput.value || today;
+  const dfSimpli = await obtenerDataSimpli(fecha);
+
+  if (dfSimpli === null) {
+    // Error already shown in apiGet
+    btnAnalizar.disabled = false;
+    setProgress(0);
+    return;
+  }
+
+  if (!dfSimpli.length) {
+    setStatus(`⚠️ Sin visitas para la fecha ${fecha} — verifica la fecha o el token`, 'warn');
+    btnAnalizar.disabled = false;
+    setProgress(0);
+    return;
+  }
+
+  setStatus('<span class="loader"></span> Cruzando con base…', 'active');
+  setProgress(85);
+
+  // Build base lookup
+  const keys = Object.keys(baseData[0] || {});
+  const colCom = keys.find(k => k.toLowerCase() === 'commerce');
+  const colPat = keys.find(k => k.toLowerCase() === 'patente');
+  const colIso = keys.find(k => k.toLowerCase() === 'parentorder');
+  const colEst = keys.find(k => k.toLowerCase() === 'estado');
+
+  const baseRef = {};
+  (colIso ? baseData.filter(r => !colCom || String(r[colCom]||'').toUpperCase().trim() === 'IKEA') : baseData)
+    .forEach(row => {
+      const iso = String(row[colIso] || '').trim();
+      if (iso) baseRef[iso] = {
+        PATENTE: String(row[colPat] || '').trim(),
+        ESTADO:  String(row[colEst] || '').trim()
+      };
+    });
+
+  // Detect duplicates in simpli
+  const isoCount = {};
+  dfSimpli.forEach(v => { isoCount[v.ISO] = (isoCount[v.ISO] || 0) + 1; });
+
+  masterData = [];
+  dfSimpli.forEach(row => {
+    if (row.CONDUCTOR_SIMPLI !== '') return; // skip — has driver
+
+    const base = baseRef[row.ISO];
+    const patente  = base ? base.PATENTE : '';
+    const estado   = base ? base.ESTADO  : '';
+    let   analisis = '';
+    let   dup      = false;
+
+    // Duplicate with another instance that HAS a driver
+    if (isoCount[row.ISO] > 1) {
+      const otra = dfSimpli.find(r => r.ISO === row.ISO && r.CONDUCTOR_SIMPLI !== '');
+      if (otra) {
+        analisis = `DUPLICADA (En ${otra.VEHICULO_SIMPLI || otra.ISO})`;
+        dup = true;
+      }
+    }
+
+    masterData.push({ ISO: row.ISO, PATENTE: patente, ESTADO: estado, VEHICULO: row.VEHICULO_SIMPLI, ANALISIS: analisis, _dup: dup });
+  });
+
+  setProgress(100);
+  setTimeout(() => setProgress(0), 600);
+
+  const dups = masterData.filter(r => r._dup).length;
+  document.getElementById('rTotal').textContent = masterData.length;
+  document.getElementById('rDup').textContent   = dups;
+  document.getElementById('resSection').style.display = '';
+  btnAnalizar.disabled = false;
+
+  filteredData = [...masterData];
+  emptyState.style.display      = 'none';
+  tablaResultado.style.display  = '';
+  toolbar.style.display         = '';
+
+  renderTabla();
+  setStatus(`✅ Análisis completo — ${masterData.length} sin conductor, ${dups} duplicadas`, 'ok');
+  notify(`${masterData.length} registros sin conductor encontrados`, 'ok');
+}
+
+// ══════════════════════════════════════
+//  RENDER TABLE
+// ══════════════════════════════════════
+function applyFilters(data) {
+  let result = data.filter(row =>
+    Object.entries(colFilters).every(([col, allowed]) => allowed.has(row[col] ?? ''))
+  );
+  if (sortCol && sortDir) {
+    result = [...result].sort((a, b) => {
+      const va = (a[sortCol] || '').toString().toLowerCase();
+      const vb = (b[sortCol] || '').toString().toLowerCase();
+      return sortDir === 'asc' ? va.localeCompare(vb, 'es') : vb.localeCompare(va, 'es');
+    });
+  }
+  return result;
+}
+
+function renderTabla() {
+  filteredData = applyFilters(masterData);
+  cntVisible.textContent = filteredData.length;
+  cntTotal.textContent   = masterData.length;
+
+  // Update th-filter-btn active states
+  document.querySelectorAll('.th-filter-btn').forEach(btn => {
+    const col = btn.getAttribute('onclick').match(/'([^']+)'/)?.[1];
+    if (col) {
+      const active = !!colFilters[col];
+      btn.classList.toggle('active', active);
+      const cnt = active ? colFilters[col].size : null;
+      btn.textContent = active ? `▼${cnt}` : '▼';
+    }
+  });
+
+  updateActiveFiltersBar();
+
+  if (!filteredData.length) {
+    tablaBody.innerHTML = `<tr><td colspan="5"><div class="empty-state" style="min-height:120px"><span class="empty-icon">🔍</span><div class="empty-title" style="font-size:12px">Sin resultados para los filtros activos</div></div></td></tr>`;
+    return;
+  }
+
+  tablaBody.innerHTML = filteredData.map(r => `
+    <tr class="${r._dup ? 'row-dup' : ''}">
+      <td>${esc(r.ISO)}</td>
+      <td>${esc(r.PATENTE)}</td>
+      <td>${esc(r.ESTADO)}</td>
+      <td>${esc(r.VEHICULO)}</td>
+      <td>${r.ANALISIS ? `<span class="badge-alerta">⚠ ${esc(r.ANALISIS)}</span>` : ''}</td>
+    </tr>
+  `).join('');
+}
+
+// ══════════════════════════════════════
+//  ACTIVE FILTERS BAR
+// ══════════════════════════════════════
+function updateActiveFiltersBar() {
+  const bar = document.getElementById('activeFiltersBar');
+  const entries = Object.entries(colFilters);
+  if (!entries.length) {
+    bar.innerHTML = '<span class="ik-no-filters">Sin filtros activos — haz clic en ▼ de cualquier columna para filtrar</span>';
+    return;
+  }
+  let h = '';
+  entries.forEach(([col, set]) => {
+    const vals = [...set].slice(0, 3).map(v => v || '(Vacío)').join(', ') + (set.size > 3 ? ` +${set.size - 3}` : '');
+    h += `<span class="fchip" onclick="clearColFilter('${col}')" title="Clic para quitar filtro de ${col}"><span class="fchip-col">${col}:</span> ${vals} ✕</span>`;
+  });
+  h += `<button class="btn-ghost btn-sm" style="margin-left:auto;padding:2px 8px;font-size:10px" onclick="clearAllFilters()">✕ Quitar todos</button>`;
+  bar.innerHTML = h;
+}
+
+function clearColFilter(col) { delete colFilters[col]; renderTabla(); }
+function clearAllFilters()   { colFilters = {}; renderTabla(); }
+
+// ══════════════════════════════════════
+//  CFP — COLUMN FILTER POPUP
+// ══════════════════════════════════════
+function openCfp(col, btnEl) {
+  const allVals = [...new Set(masterData.map(r => r[col] ?? ''))].sort((a, b) => a.localeCompare(b, 'es'));
+  cfp_col    = col;
+  cfp_all    = allVals;
+  cfp_btn_el = btnEl;
+  cfp_pending = colFilters[col] ? new Set(colFilters[col]) : new Set(allVals);
+
+  document.getElementById('cfp-title').textContent = `Filtrar: ${col}`;
+  document.getElementById('cfp-search').value = '';
+  buildCfpList(allVals);
+
+  const rect  = btnEl.getBoundingClientRect();
+  const popup = document.getElementById('cfp');
+  popup.style.top = (rect.bottom + 4) + 'px';
+  let left = rect.left;
+  if (left + 250 > window.innerWidth - 10) left = window.innerWidth - 255;
+  popup.style.left = left + 'px';
+  popup.classList.add('open');
+  document.getElementById('cfp-search').focus();
+}
+
+function buildCfpList(vals) {
+  const list = document.getElementById('cfp-list');
+  list.innerHTML = vals.map(v => {
+    const chk     = cfp_pending.has(v) ? 'checked' : '';
+    const label   = v === '' ? '(Vacío)' : esc(v);
+    const isBlank = v === '' ? 'blank' : '';
+    return `<label class="cfp-item ${isBlank}">
+      <input type="checkbox" value="${v.replace(/"/g,'&quot;')}" ${chk} onchange="cfpToggle(this)">
+      <label>${label}</label>
+    </label>`;
+  }).join('');
+}
+
+function cfpToggle(cb) {
+  const v = cb.value;
+  if (cb.checked) cfp_pending.add(v); else cfp_pending.delete(v);
+}
+
+function cfpSearch(q) {
+  const lo = q.toLowerCase();
+  buildCfpList(cfp_all.filter(v => v.toLowerCase().includes(lo)));
+}
+
+function cfpSelAll(val) {
+  const q = document.getElementById('cfp-search').value.toLowerCase();
+  const visible = cfp_all.filter(v => v.toLowerCase().includes(q));
+  visible.forEach(v => { if (val) cfp_pending.add(v); else cfp_pending.delete(v); });
+  buildCfpList(visible);
+}
+
+function cfpApply() {
+  if (cfp_col === null) return;
+  const allVals = [...new Set(masterData.map(r => r[cfp_col] ?? ''))];
+  if (cfp_pending.size >= allVals.length && allVals.every(v => cfp_pending.has(v))) {
+    delete colFilters[cfp_col];
+  } else {
+    colFilters[cfp_col] = new Set(cfp_pending);
+  }
+  cfpClose();
+  renderTabla();
+}
+
+function cfpSort(dir) {
+  sortCol = dir ? cfp_col : null;
+  sortDir = dir;
+  const btns = document.querySelectorAll('#cfp .cfp-sort-row button');
+  btns.forEach(b => { b.style.background = ''; b.style.color = ''; });
+  if (dir === 'asc')  { btns[0].style.background = '#FFDA1A'; btns[0].style.color = '#111'; }
+  if (dir === 'desc') { btns[1].style.background = '#FFDA1A'; btns[1].style.color = '#111'; }
+  cfpApply();
+}
+
+function cfpClose() {
+  document.getElementById('cfp').classList.remove('open');
+}
+
+// Close CFP on outside click
+document.addEventListener('mousedown', e => {
+  const popup = document.getElementById('cfp');
+  if (popup.classList.contains('open') && !popup.contains(e.target) && !e.target.closest('.th-filter-btn')) {
+    cfpClose();
+  }
+});
+
+// ══════════════════════════════════════
+//  COPY TABLE
+// ══════════════════════════════════════
+function copiarTabla() {
+  if (!filteredData.length) return;
+  const hdStyle = 'border:1px solid #000;padding:7px 11px;font-weight:bold;background:#f0f0f0;font-family:Arial,sans-serif;font-size:12px;';
+  const tdBase  = 'border:1px solid #000;padding:6px 11px;font-family:Arial,sans-serif;font-size:11px;';
+  const tdDup   = tdBase + 'background:#fee2e2;';
+
+  let html = `<table style="border-collapse:collapse;"><tr>
+    <th style="${hdStyle}">ISO</th>
+    <th style="${hdStyle}">Patente</th>
+    <th style="${hdStyle}">Estado</th>
+    <th style="${hdStyle}">Vehículo Simpli</th>
+    <th style="${hdStyle}">Análisis</th>
+  </tr>`;
+  filteredData.forEach(r => {
+    const td = r._dup ? tdDup : tdBase;
+    html += `<tr>
+      <td style="${td}font-weight:700;">${esc(r.ISO)}</td>
+      <td style="${td}">${esc(r.PATENTE)}</td>
+      <td style="${td}">${esc(r.ESTADO)}</td>
+      <td style="${td}">${esc(r.VEHICULO)}</td>
+      <td style="${td}">${esc(r.ANALISIS)}</td>
+    </tr>`;
+  });
+  html += '</table>';
+
+  let tsv = 'ISO\tPatente\tEstado\tVehículo Simpli\tAnálisis\n';
+  filteredData.forEach(r => { tsv += `${r.ISO}\t${r.PATENTE}\t${r.ESTADO}\t${r.VEHICULO}\t${r.ANALISIS}\n`; });
+
+  try {
+    const item = new ClipboardItem({
+      'text/html':  new Blob([html], { type: 'text/html' }),
+      'text/plain': new Blob([tsv],  { type: 'text/plain' })
+    });
+    navigator.clipboard.write([item]).then(flashCopied).catch(() => fallbackCopy(tsv));
+  } catch { fallbackCopy(tsv); }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; document.body.appendChild(ta); ta.select();
+  document.execCommand('copy'); document.body.removeChild(ta);
+  flashCopied();
+}
+
+function flashCopied() {
+  const el = document.getElementById('copyFlash');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ══════════════════════════════════════
+//  RESET
+// ══════════════════════════════════════
+function resetTodo() {
+  masterData = []; filteredData = []; baseData = null;
+  colFilters = {}; sortCol = null; sortDir = null;
+  fileInput.value = '';
+  uploadZone.classList.remove('loaded');
+  uploadLbl.textContent = 'Clic o arrastra tu archivo base';
+  uploadSub.textContent = 'Commerce · ParentOrder · Patente · Estado';
+  document.getElementById('statsSection').style.display = 'none';
+  document.getElementById('resSection').style.display   = 'none';
+  tablaResultado.style.display = 'none';
+  emptyState.style.display     = '';
+  toolbar.style.display        = 'none';
+  tablaBody.innerHTML          = '';
+  btnAnalizar.disabled = true;
+  statusBar.className = '';
+  statusBar.innerHTML = '';
+  setProgress(0);
+  updateActiveFiltersBar();
+}
+
+// ══════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════
+function setStatus(msg, type = '') {
+  statusBar.innerHTML   = msg;
+  statusBar.className   = 'status-bar active ' + type;
+}
+
+function setProgress(pct) {
+  if (pct > 0) { progressWrap.classList.add('active'); progressFill.style.width = pct + '%'; }
+  else         { progressWrap.classList.remove('active'); progressFill.style.width = '0%'; }
+}
+
+function notify(msg, type = 'info') {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.className = `ik-notif notif-${type}`;
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.display = 'none'; }, 3200);
+}
+
+function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+
+// ═══════════════════════════════════════════════
+//  IKEA EXCEL-LIKE CELL SELECTION (universal)
+// ═══════════════════════════════════════════════
+(function() {
+  var _anchor = null, _active = null, _dragging = false;
+
+  // ── inject glow div ──
+  var _glow = document.createElement('div');
+  _glow.className = 'ik-copy-glow';
+  _glow.id = 'ikCopyGlow';
+  _glow.textContent = '✓ Copiado';
+  document.body.appendChild(_glow);
+  var _glowT;
+  function flashGlow() {
+    _glow.classList.add('ik-glow-show');
+    clearTimeout(_glowT);
+    _glowT = setTimeout(function(){ _glow.classList.remove('ik-glow-show'); }, 1600);
+  }
+
+  // ── mark all td/th in standard tables as selectable ──
+  function markSelectableCells() {
+    document.querySelectorAll('tbody td, .ik-grid-table tbody td').forEach(function(td) {
+      td.classList.add('ik-sel-cell');
+    });
+  }
+
+  // ── also watch for dynamically rendered tables ──
+  var _mo = new MutationObserver(function() { markSelectableCells(); });
+  _mo.observe(document.body, { childList: true, subtree: true });
+  markSelectableCells();
+
+  // ── get row/col indices ──
+  function idx(td) {
+    var tr = td.parentElement;
+    var ri = Array.from(tr.parentElement.rows || tr.parentElement.children).indexOf(tr);
+    var ci = Array.from(tr.cells || tr.children).indexOf(td);
+    return { r: ri, c: ci };
+  }
+
+  // ── clear all selection highlight ──
+  function clearSel() {
+    document.querySelectorAll('.ik-selected,.ik-anchor').forEach(function(el) {
+      el.classList.remove('ik-selected','ik-anchor');
+    });
+  }
+
+  // ── select range between two cells (must be in same table) ──
+  function selectRange(a, b) {
+    if (!a || !b) return;
+    // find shared table
+    var tA = a.closest('table'), tB = b.closest('table');
+    if (!tA || tA !== tB) { clearSel(); if(a) { a.classList.add('ik-anchor'); } return; }
+    clearSel();
+    var ia = idx(a), ib = idx(b);
+    var r1 = Math.min(ia.r,ib.r), r2 = Math.max(ia.r,ib.r);
+    var c1 = Math.min(ia.c,ib.c), c2 = Math.max(ia.c,ib.c);
+    var tbody = a.closest('tbody') || a.closest('table');
+    Array.from(tbody.rows || tbody.querySelectorAll('tr')).slice(r1, r2+1).forEach(function(tr) {
+      Array.from(tr.cells).slice(c1, c2+1).forEach(function(td) {
+        td.classList.add('ik-selected');
+      });
+    });
+    a.classList.add('ik-anchor');
+  }
+
+  // ── get text from selected cells as TSV ──
+  function getSelText() {
+    var cells = Array.from(document.querySelectorAll('.ik-selected,.ik-anchor'));
+    if (!cells.length) return '';
+    var byRow = {};
+    cells.forEach(function(td) {
+      var i = idx(td);
+      if (!byRow[i.r]) byRow[i.r] = [];
+      byRow[i.r].push({ c: i.c, text: (td.innerText || td.textContent || '').trim() });
+    });
+    return Object.keys(byRow).sort(function(a,b){return a-b;}).map(function(r) {
+      return byRow[r].sort(function(a,b){return a.c-b.c;}).map(function(x){return x.text;}).join('\t');
+    }).join('\n');
+  }
+
+  // ── copy to clipboard ──
+  function copySelection() {
+    var text = getSelText();
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(flashGlow).catch(function(){fallbackCopy(text);});
+    } else { fallbackCopy(text); }
+  }
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.cssText='position:fixed;opacity:0;top:0;left:0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    flashGlow();
+  }
+
+  // ── mouse events ──
+  document.addEventListener('mousedown', function(e) {
+    var td = e.target.closest('tbody td.ik-sel-cell');
+    if (!td) return;
+    // Don't hijack contenteditable grid cells focus
+    if (td.querySelector('[contenteditable]') || td.getAttribute('contenteditable')) return;
+    _dragging = true; _anchor = td; _active = td;
+    clearSel();
+    td.classList.add('ik-anchor');
+    e.preventDefault();
+  }, true);
+
+  document.addEventListener('mouseover', function(e) {
+    if (!_dragging || !_anchor) return;
+    var td = e.target.closest('tbody td.ik-sel-cell');
+    if (!td) return;
+    _active = td;
+    selectRange(_anchor, _active);
+  });
+
+  document.addEventListener('mouseup', function() { _dragging = false; });
+
+  // click outside → clear
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('tbody td')) { clearSel(); _anchor=null; _active=null; }
+  });
+
+  // ── keyboard ──
+  document.addEventListener('keydown', function(e) {
+    // Ctrl+C → copy selection if any selected cells
+    if ((e.ctrlKey||e.metaKey) && e.key==='c') {
+      var hasSel = document.querySelectorAll('.ik-selected,.ik-anchor').length > 0;
+      if (!hasSel) return;
+      copySelection();
+      e.stopPropagation();
+      return;
+    }
+    // Shift+Arrow → extend selection
+    if (e.shiftKey && ['ArrowDown','ArrowUp','ArrowLeft','ArrowRight'].includes(e.key) && _anchor) {
+      e.preventDefault();
+      var cur = _active || _anchor;
+      var table = cur.closest('table');
+      if (!table) return;
+      var ia = idx(cur);
+      var rows = Array.from(cur.closest('tbody').rows);
+      var nr = ia.r, nc = ia.c;
+      if (e.key==='ArrowDown')  nr = Math.min(nr+1, rows.length-1);
+      if (e.key==='ArrowUp')    nr = Math.max(nr-1, 0);
+      if (e.key==='ArrowRight') nc = Math.min(nc+1, rows[0].cells.length-1);
+      if (e.key==='ArrowLeft')  nc = Math.max(nc-1, 0);
+      var newCell = rows[nr] && rows[nr].cells[nc];
+      if (newCell) { _active = newCell; selectRange(_anchor, _active); }
+    }
+  });
+
+  // expose globally so copy buttons can call it
+  window.ikCopySelection = copySelection;
+  window.ikFlashGlow = flashGlow;
+})();
+
+</body>
+</html>

@@ -1,77 +1,63 @@
 <!DOCTYPE html>
-
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IKEA Tools</title>
-
 <style>
-:root {
-  --blue: #0051BA;
-  --blue-dark: #003A8C;
-  --blue-mid: #1a6dd4;
-  --yellow: #FFDA1A;
-  --yellow-dark: #e6c400;
-  --bg: #0d1117;
-  --surface: #161b22;
-  --surface2: #1c2128;
-  --border: #30363d;
-  --text: #e6edf3;
-  --text-muted: #8b949e;
-  --text-dim: #656d76;
-  --green: #3fb950;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
-  background: #0d1117;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  background-color: #111318;
   color: #e6edf3;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow-x: hidden;
 }
 
-/* Grid background */
-body::before {
-  content: '';
+.grid-bg {
   position: fixed;
-  inset: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background-image:
-    linear-gradient(rgba(0,81,186,.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,81,186,.04) 1px, transparent 1px);
+    linear-gradient(rgba(0,81,186,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,81,186,0.04) 1px, transparent 1px);
   background-size: 40px 40px;
   pointer-events: none;
   z-index: 0;
 }
 
-/* Glow */
-body::after {
-  content: '';
+.glow {
   position: fixed;
   top: -200px;
   left: 50%;
   transform: translateX(-50%);
   width: 800px;
   height: 400px;
-  background: radial-gradient(ellipse, rgba(0,81,186,.18) 0%, transparent 70%);
+  background: radial-gradient(ellipse at center, rgba(0,81,186,0.18) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
 
-/* HEADER */
-.header {
+.page {
   position: relative;
   z-index: 1;
-  padding: 52px 48px 0;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 24px 60px;
+}
+
+/* ── HEADER ── */
+.header {
+  padding: 56px 0 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 16px;
+  gap: 14px;
+  animation: fadeUp 0.5s ease both;
 }
 
 .logo-row {
@@ -81,16 +67,17 @@ body::after {
 }
 
 .logo-icon {
-  width: 48px;
-  height: 48px;
+  width: 50px;
+  height: 50px;
   background: linear-gradient(135deg, #003A8C, #1a6dd4);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  box-shadow: 0 8px 24px rgba(0,81,186,.4);
-  border: 1px solid rgba(0,81,186,.5);
+  box-shadow: 0 8px 24px rgba(0,81,186,0.4);
+  border: 1px solid rgba(0,81,186,0.5);
+  flex-shrink: 0;
 }
 
 .logo-text {
@@ -100,9 +87,9 @@ body::after {
 }
 
 .logo-title {
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: 2px;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
   color: #FFDA1A;
   text-transform: uppercase;
 }
@@ -111,7 +98,7 @@ body::after {
   font-size: 11px;
   color: #656d76;
   letter-spacing: 1px;
-  font-family: 'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+  font-family: 'Courier New', Courier, monospace;
 }
 
 .header-divider {
@@ -119,26 +106,26 @@ body::after {
   height: 3px;
   background: linear-gradient(90deg, transparent, #FFDA1A, transparent);
   border-radius: 2px;
-  margin: 8px 0 0;
+  margin-top: 4px;
 }
 
 .header-desc {
   font-size: 13px;
   color: #8b949e;
-  max-width: 400px;
-  line-height: 1.6;
+  max-width: 420px;
+  line-height: 1.7;
 }
 
-/* APPS GRID */
+/* ── SECTION LABEL ── */
 .apps-section {
-  position: relative;
-  z-index: 1;
-  flex: 1;
-  padding: 52px 48px 60px;
+  padding-top: 52px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 32px;
+  gap: 28px;
+  animation: fadeUp 0.5s 0.1s ease both;
+  opacity: 0;
+  animation-fill-mode: forwards;
 }
 
 .section-label {
@@ -149,66 +136,64 @@ body::after {
   text-transform: uppercase;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  max-width: 780px;
 }
 
-.section-label::before,
-.section-label::after {
-  content: '';
+.section-label-line {
   flex: 1;
   height: 1px;
-  background: #30363d;
+  background-color: #30363d;
 }
 
+/* ── GRID ── */
 .apps-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   width: 100%;
-  max-width: 780px;
 }
 
-/* APP CARD */
+@media (max-width: 680px) {
+  .apps-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 440px) {
+  .apps-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── APP CARD ── */
 .app-card {
   position: relative;
-  background: #161b22;
+  background-color: #161b22;
   border: 1px solid #30363d;
   border-radius: 14px;
-  padding: 24px 22px 20px;
+  padding: 22px 20px 18px;
   text-decoration: none;
   color: #e6edf3;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   cursor: pointer;
-  transition: all .2s cubic-bezier(.4,0,.2,1);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
   overflow: hidden;
-  group: true;
-}
-
-.app-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(0,81,186,.06), transparent 60%);
-  opacity: 0;
-  transition: opacity .2s;
 }
 
 .app-card:hover {
-  border-color: rgba(0,81,186,.6);
   transform: translateY(-3px);
-  box-shadow: 0 12px 32px rgba(0,0,0,.4), 0 0 0 1px rgba(0,81,186,.2);
+  border-color: rgba(0,81,186,0.6);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,81,186,0.2);
 }
 
-.app-card:hover::before { opacity: 1; }
+.app-card:active {
+  transform: translateY(-1px);
+}
 
-.app-card:active { transform: translateY(-1px); }
-
-/* accent line top */
-.app-card .accent {
+.card-accent {
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 3px;
@@ -226,8 +211,6 @@ body::after {
   flex-shrink: 0;
 }
 
-.app-info { display: flex; flex-direction: column; gap: 4px; }
-
 .app-name {
   font-size: 14px;
   font-weight: 700;
@@ -238,31 +221,32 @@ body::after {
 .app-desc {
   font-size: 11px;
   color: #8b949e;
-  line-height: 1.5;
+  line-height: 1.55;
+  flex: 1;
 }
 
 .app-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding-top: 6px;
   margin-top: auto;
-  padding-top: 4px;
 }
 
 .app-tag {
   font-size: 9px;
   font-weight: 700;
-  letter-spacing: .5px;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
-  padding: 2px 7px;
+  padding: 2px 8px;
   border-radius: 20px;
-  font-family: 'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+  font-family: 'Courier New', Courier, monospace;
 }
 
 .app-arrow {
-  font-size: 14px;
+  font-size: 15px;
   color: #656d76;
-  transition: all .2s;
+  transition: color 0.18s ease, transform 0.18s ease;
 }
 
 .app-card:hover .app-arrow {
@@ -270,19 +254,19 @@ body::after {
   transform: translateX(3px);
 }
 
-/* ADD CARD */
+/* ── ADD CARD ── */
 .add-card {
-  background: transparent;
+  background-color: transparent;
   border: 1px dashed #30363d;
   border-radius: 14px;
-  padding: 24px 22px 20px;
+  padding: 22px 20px 18px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 10px;
   cursor: pointer;
-  transition: all .2s;
+  transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease;
   min-height: 160px;
   color: #656d76;
   font-size: 12px;
@@ -293,7 +277,7 @@ body::after {
 .add-card:hover {
   border-color: #0051BA;
   color: #0051BA;
-  background: rgba(0,81,186,.04);
+  background-color: rgba(0,81,186,0.04);
 }
 
 .add-icon {
@@ -305,12 +289,25 @@ body::after {
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  transition: transform .2s;
+  transition: transform 0.2s ease;
 }
 
-.add-card:hover .add-icon { transform: scale(1.1) rotate(90deg); }
+.add-card:hover .add-icon {
+  transform: scale(1.1) rotate(90deg);
+}
 
-/* FOOTER */
+/* ── CARD STAGGER ANIMATIONS ── */
+.card-1 { animation: fadeUp 0.4s 0.18s ease both; opacity: 0; animation-fill-mode: forwards; }
+.card-2 { animation: fadeUp 0.4s 0.26s ease both; opacity: 0; animation-fill-mode: forwards; }
+.card-3 { animation: fadeUp 0.4s 0.34s ease both; opacity: 0; animation-fill-mode: forwards; }
+.card-4 { animation: fadeUp 0.4s 0.42s ease both; opacity: 0; animation-fill-mode: forwards; }
+.card-5 { animation: fadeUp 0.4s 0.50s ease both; opacity: 0; animation-fill-mode: forwards; }
+.card-6 { animation: fadeUp 0.4s 0.58s ease both; opacity: 0; animation-fill-mode: forwards; }
+.card-7 { animation: fadeUp 0.4s 0.66s ease both; opacity: 0; animation-fill-mode: forwards; }
+.card-8 { animation: fadeUp 0.4s 0.74s ease both; opacity: 0; animation-fill-mode: forwards; }
+.card-9 { animation: fadeUp 0.4s 0.82s ease both; opacity: 0; animation-fill-mode: forwards; }
+
+/* ── FOOTER ── */
 .footer {
   position: relative;
   z-index: 1;
@@ -318,101 +315,165 @@ body::after {
   padding: 20px;
   font-size: 10px;
   color: #656d76;
-  font-family: 'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
-  letter-spacing: .5px;
+  font-family: 'Courier New', Courier, monospace;
+  letter-spacing: 0.5px;
   border-top: 1px solid #30363d;
+  margin-top: 60px;
 }
 
-/* Entrance animation */
+/* ── ANIMATION ── */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-
-.header         { animation: fadeUp .5s ease both; }
-.section-label  { animation: fadeUp .5s .15s ease both; }
-.app-card:nth-child(1) { animation: fadeUp .45s .2s ease both; }
-.app-card:nth-child(2) { animation: fadeUp .45s .28s ease both; }
-.app-card:nth-child(3) { animation: fadeUp .45s .36s ease both; }
-.app-card:nth-child(4) { animation: fadeUp .45s .44s ease both; }
-.add-card               { animation: fadeUp .45s .5s ease both; }
 </style>
-
 </head>
 <body>
 
-<div class="header">
-  <div class="logo-row">
-    <div class="logo-icon">🚛</div>
-    <div class="logo-text">
-      <div class="logo-title">IKEA Tools</div>
-      <div class="logo-sub">suite de aplicaciones · operaciones</div>
+<div class="grid-bg"></div>
+<div class="glow"></div>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo-row">
+      <div class="logo-icon">🚛</div>
+      <div class="logo-text">
+        <div class="logo-title">IKEA Tools</div>
+        <div class="logo-sub">suite de aplicaciones · operaciones</div>
+      </div>
+    </div>
+    <div class="header-divider"></div>
+    <div class="header-desc">Herramientas internas para gestión de rutas, despacho y operaciones de ecommerce.</div>
+  </div>
+
+  <!-- APPS -->
+  <div class="apps-section">
+    <div class="section-label">
+      <span class="section-label-line"></span>
+      Aplicaciones
+      <span class="section-label-line"></span>
+    </div>
+
+    <div class="apps-grid">
+
+      <!-- 1: Rutear Postventa -->
+      <a class="app-card card-1" href="ruteador-ikea-v9.html">
+        <div class="card-accent" style="background: linear-gradient(90deg, #0051BA, #1a6dd4);"></div>
+        <div class="app-icon" style="background: rgba(0,81,186,0.15); border: 1px solid rgba(0,81,186,0.3);">🗺️</div>
+        <div class="app-name">Rutear Postventa</div>
+        <div class="app-desc">Dashboard de rutas, repites, retiros y gestión de despacho ecommerce.</div>
+        <div class="app-footer">
+          <span class="app-tag" style="background: rgba(0,81,186,0.15); color: #7bb8ff;">Rutas</span>
+          <span class="app-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- 2: Auditoría de Rutas -->
+      <a class="app-card card-2" href="auditoria_rutas.html">
+        <div class="card-accent" style="background: linear-gradient(90deg, #00c48c, #00a374);"></div>
+        <div class="app-icon" style="background: rgba(0,196,140,0.12); border: 1px solid rgba(0,196,140,0.25);">🔍</div>
+        <div class="app-name">Auditoría de Rutas</div>
+        <div class="app-desc">Análisis de comunas por vehículo, revisión de direcciones e ISOs.</div>
+        <div class="app-footer">
+          <span class="app-tag" style="background: rgba(0,196,140,0.12); color: #00c48c;">Auditoría</span>
+          <span class="app-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- 3: Ruteo 24HRS -->
+      <a class="app-card card-3" href="ruteo-24hrs.html">
+        <div class="card-accent" style="background: linear-gradient(90deg, #f0883e, #d4722e);"></div>
+        <div class="app-icon" style="background: rgba(240,136,62,0.12); border: 1px solid rgba(240,136,62,0.25);">⚡</div>
+        <div class="app-name">Ruteo 24HRS</div>
+        <div class="app-desc">Pre ruteo SCI, post ruteo con cruce de plan Simpliroute y exportaciones finales.</div>
+        <div class="app-footer">
+          <span class="app-tag" style="background: rgba(240,136,62,0.12); color: #f0883e;">Ruteo</span>
+          <span class="app-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- 4: ISOs Faltantes Geo -->
+      <a class="app-card card-4" href="isos_faltantes_geo.html">
+        <div class="card-accent" style="background: linear-gradient(90deg, #a371f7, #7c4ddc);"></div>
+        <div class="app-icon" style="background: rgba(163,113,247,0.12); border: 1px solid rgba(163,113,247,0.25);">📍</div>
+        <div class="app-name">ISOs Faltantes Geo</div>
+        <div class="app-desc">Revisión de visitas sin conductor, cruce con base y detección de ISOs duplicados.</div>
+        <div class="app-footer">
+          <span class="app-tag" style="background: rgba(163,113,247,0.12); color: #a371f7;">Simpli</span>
+          <span class="app-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- 5: Ruteo PR -->
+      <a class="app-card card-5" href="app_ruteo_pr.html">
+        <div class="card-accent" style="background: linear-gradient(90deg, #f7cc1a, #d4aa00);"></div>
+        <div class="app-icon" style="background: rgba(247,204,26,0.12); border: 1px solid rgba(247,204,26,0.25);">📦</div>
+        <div class="app-name">Ruteo PR</div>
+        <div class="app-desc">Pre ruteo y post ruteo para el canal PR, con exportaciones finales optimizadas.</div>
+        <div class="app-footer">
+          <span class="app-tag" style="background: rgba(247,204,26,0.12); color: #f7cc1a;">PR</span>
+          <span class="app-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- 6: Reporte de Rutas -->
+      <a class="app-card card-6" href="reporte_rutas.html">
+        <div class="card-accent" style="background: linear-gradient(90deg, #f05454, #c73d3d);"></div>
+        <div class="app-icon" style="background: rgba(240,84,84,0.12); border: 1px solid rgba(240,84,84,0.25);">📊</div>
+        <div class="app-name">Reporte de Rutas</div>
+        <div class="app-desc">Reporte de avance y planificación en ruta con estado en tiempo real por vehículo.</div>
+        <div class="app-footer">
+          <span class="app-tag" style="background: rgba(240,84,84,0.12); color: #f05454;">Reporte</span>
+          <span class="app-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- 7: Consultor ISOs -->
+      <a class="app-card card-7" href="consultor_isos.html">
+        <div class="card-accent" style="background: linear-gradient(90deg, #00c48c, #009e75);"></div>
+        <div class="app-icon" style="background: rgba(0,196,140,0.12); border: 1px solid rgba(0,196,140,0.25);">🔎</div>
+        <div class="app-name">Consultor ISOs</div>
+        <div class="app-desc">Consulta estado, comentario y motivo de no entrega por ISO. Filtro IKEA automático.</div>
+        <div class="app-footer">
+          <span class="app-tag" style="background: rgba(0,196,140,0.12); color: #00c48c;">ISOs</span>
+          <span class="app-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- 8: Verificador Vehículos -->
+      <a class="app-card card-8" href="verificador_vehiculos.html">
+        <div class="card-accent" style="background: linear-gradient(90deg, #a371f7, #7c4ddc);"></div>
+        <div class="app-icon" style="background: rgba(163,113,247,0.12); border: 1px solid rgba(163,113,247,0.25);">🚛</div>
+        <div class="app-name">Verificador Vehículos</div>
+        <div class="app-desc">Cruce Simpliroute + Reporte. Verifica si cada vehículo tiene patente asignada en el plan.</div>
+        <div class="app-footer">
+          <span class="app-tag" style="background: rgba(163,113,247,0.12); color: #a371f7;">Simpli</span>
+          <span class="app-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- 9: Placeholder -->
+      <div class="app-card add-card card-9" onclick="alert('Próximamente — agrega tu siguiente app aquí')">
+        <div class="add-icon">+</div>
+        <span>Nueva aplicación</span>
+      </div>
+
     </div>
   </div>
-  <div class="header-divider"></div>
-  <div class="header-desc">Herramientas internas para gestión de rutas, despacho y operaciones de ecommerce.</div>
+
 </div>
 
-<div class="apps-section">
-  <div class="section-label">Aplicaciones</div>
-
-  <div class="apps-grid">
-
-```
-<!-- App 1: Rutear Postventa -->
-<a class="app-card" href="ruteador-ikea-v9.html">
-  <div class="accent" style="background:linear-gradient(90deg,#0051BA,#1a6dd4)"></div>
-  <div class="app-icon" style="background:rgba(0,81,186,.15);border:1px solid rgba(0,81,186,.3)">🗺️</div>
-  <div class="app-info">
-    <div class="app-name">Rutear Postventa</div>
-    <div class="app-desc">Dashboard de rutas, repites, retiros y gestión de despacho ecommerce.</div>
-  </div>
-  <div class="app-footer">
-    <span class="app-tag" style="background:rgba(0,81,186,.15);color:#7bb8ff">Rutas</span>
-    <span class="app-arrow">→</span>
-  </div>
-</a>
-
-<!-- App 2: Auditoría de Rutas -->
-<a class="app-card" href="auditoria-rutas.html">
-  <div class="accent" style="background:linear-gradient(90deg,#00c48c,#00a374)"></div>
-  <div class="app-icon" style="background:rgba(0,196,140,.12);border:1px solid rgba(0,196,140,.25)">🔍</div>
-  <div class="app-info">
-    <div class="app-name">Auditoría de Rutas</div>
-    <div class="app-desc">Análisis de comunas por vehículo, revisión de direcciones e ISOs.</div>
-  </div>
-  <div class="app-footer">
-    <span class="app-tag" style="background:rgba(0,196,140,.12);color:#00c48c">Auditoría</span>
-    <span class="app-arrow">→</span>
-  </div>
-</a>
-
-<!-- App 3: Ruteo 24HRS -->
-<a class="app-card" href="ruteo-24hrs.html">
-  <div class="accent" style="background:linear-gradient(90deg,#f0883e,#d4722e)"></div>
-  <div class="app-icon" style="background:rgba(240,136,62,.12);border:1px solid rgba(240,136,62,.25)">⚡</div>
-  <div class="app-info">
-    <div class="app-name">Ruteo 24HRS</div>
-    <div class="app-desc">Pre ruteo SCI, post ruteo con cruce de plan Simpliroute y exportaciones finales.</div>
-  </div>
-  <div class="app-footer">
-    <span class="app-tag" style="background:rgba(240,136,62,.12);color:#f0883e">Ruteo</span>
-    <span class="app-arrow">→</span>
-  </div>
-</a>
-
-<!-- Placeholder -->
-<div class="add-card" onclick="alert('Próximamente — agrega tu siguiente app aquí')">
-  <div class="add-icon">+</div>
-  <span>Nueva aplicación</span>
-</div>
-```
-
-  </div>
-</div>
-
+<!-- FOOTER -->
 <div class="footer">
-  IKEA Operations Tools · Sistema interno · <span id="yr"></span>
+  IKEA Operations Tools &middot; Sistema interno &middot; <span id="yr"></span>
 </div>
 
 <script>

@@ -1,648 +1,1326 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reporte de Avance en Ruta - IKEA</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --ikea-blue: #0058a3;
-            --ikea-yellow: #FBD914;
-            --light-bg: #f5f5f5;
-            --text-dark: #333333;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporte de Rutas — IKEA Tools</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link rel="stylesheet" href="ikea-theme.css">
+<style>
+/* PAGE */
+body{overflow:auto;height:auto;min-height:100vh;background:#f0f2f5;}
+.rr-container{max-width:1400px;margin:0 auto;padding:20px;display:flex;flex-direction:column;gap:14px;}
 
-        body {
-            font-family: 'Noto Sans', Arial, sans-serif;
-            background-color: var(--light-bg);
-            color: var(--text-dark);
-            margin: 0;
-            padding: 0;
-        }
+/* CARDS */
+.rr-card{background:#fff;border:1px solid #d0d7de;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.rr-card-header{background:#0051BA;padding:9px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.rr-card-header h2{font-size:12px;font-weight:700;color:#FFDA1A;text-transform:uppercase;letter-spacing:1px;margin:0;}
+.rr-card-body{padding:12px 14px;background:#fff;}
+.rr-btn-group{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
 
-        .header {
-            background-color: var(--ikea-blue);
-            color: var(--ikea-yellow);
-            padding: 20px 40px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
+/* UPLOAD */
+.upload-zone{border:2px dashed #0051BA;border-radius:10px;padding:26px 20px;text-align:center;background:#f7f9fc;cursor:pointer;transition:all .18s;display:block;}
+.upload-zone:hover{background:#eef3fb;border-color:#003A8C;}
+.upload-zone input{display:none;}
+#file-name{margin-top:8px;font-weight:600;color:#0051BA;font-size:11px;}
 
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-            letter-spacing: 1px;
-        }
-        
-        .header-subtitle {
-            font-size: 18px;
-            font-weight: bold;
-        }
-        
-        .header-time {
-            font-size: 14px;
-            font-weight: normal;
-            margin-left: 8px;
-            opacity: 0.9;
-        }
+/* RESUMEN */
+#texto-resumen{white-space:pre-wrap;background:#f7f9fc;padding:11px 13px;border-left:4px solid #0051BA;font-family:'Courier New',monospace;font-size:11.5px;border-radius:0 6px 6px 0;color:#1a1a2e;line-height:1.6;}
 
-        .container {
-            max-width: 1400px;
-            margin: 30px auto;
-            padding: 0 20px;
-        }
+/* MAIN TABLES */
+.rr-table-wrap{overflow-x:auto;}
+.rr-table{width:100%;border-collapse:collapse;font-size:11.5px;background:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;}
+.rr-table thead th{background:#0051BA!important;color:#fff!important;padding:6px 10px;text-align:right;border:1px solid #003A8C;font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;}
+.rr-table thead th:first-child{text-align:left!important;}
+.rr-table tbody tr.region-row td{background:#e8f0fb!important;color:#003A8C!important;font-weight:700;border:1px solid #c5d5ee;padding:5px 10px;cursor:pointer;text-align:right;}
+.rr-table tbody tr.region-row td:first-child{text-align:left!important;}
+.rr-table tbody tr.region-row:hover td{background:#d5e4f7!important;}
+.rr-table tbody tr.patente-row td{background:#fff!important;color:#333!important;border:1px solid #e8e8e8;padding:3px 10px;text-align:right;}
+.rr-table tbody tr.patente-row td:first-child{text-align:left!important;padding-left:28px!important;color:#444!important;position:relative;}
+.rr-table tbody tr.patente-row td:first-child::before{content:'↳';position:absolute;left:12px;color:#bbb;font-size:10px;}
+.rr-table tbody tr.patente-row:nth-child(even) td{background:#fafafa!important;}
+.rr-table tbody tr.patente-row:hover td{background:#f0f5ff!important;}
+.rr-table tbody tr.conflict-row td{background:#fff8e1!important;}
+.rr-table tbody tr.conflict-row td:first-child{color:#b45309!important;}
+.rr-table tfoot th{background:#003A8C!important;color:#FFDA1A!important;padding:5px 10px;text-align:right;border:1px solid #002970;font-weight:700;font-size:10.5px;}
+.rr-table tfoot th:first-child{text-align:left!important;}
+.toggle-icon{display:inline-block;width:16px;text-align:center;color:#0051BA;font-weight:bold;margin-right:3px;font-size:10px;}
 
-        .card {
-            background-color: white;
-            border-radius: 8px;
-            padding: 25px;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            border-top: 5px solid var(--ikea-blue);
-        }
+/* CONFLICT BADGE & BTN */
+.conflict-badge{display:inline-flex;align-items:center;gap:4px;background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;white-space:nowrap;}
+.conflict-btn{display:inline-flex;align-items:center;gap:3px;background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;margin-left:5px;transition:background .1s;}
+.conflict-btn:hover{background:#ffe083;}
 
-        .card h2 {
-            color: var(--ikea-blue);
-            margin-top: 0;
-            border-bottom: 2px solid var(--light-bg);
-            padding-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+/* CHART */
+.chart-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;}
+.chart-controls select{background:#fff;border:1px solid #c5d5ee;border-radius:6px;color:#1a1a2e;font-size:12px;padding:5px 9px;min-width:250px;cursor:pointer;outline:none;}
+.chart-outer{background:#fff!important;border:1px solid #e0e6ee;border-radius:8px;padding:14px;}
+.chart-container{position:relative;height:400px;width:100%;background:#fff!important;}
 
-        /* Estilos de archivo y botones */
-        .upload-section {
-            text-align: center;
-            padding: 20px;
-            background: #fff8d6;
-            border: 2px dashed var(--ikea-yellow);
-            border-radius: 8px;
-        }
+/* BUTTONS */
+.rr-btn{display:inline-flex;align-items:center;gap:4px;border:none;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600;font-size:11px;padding:5px 10px;transition:all .12s;white-space:nowrap;}
+.rr-btn:disabled{opacity:.4;cursor:not-allowed;}
+.rr-btn-yellow{background:#FFDA1A;color:#111;}
+.rr-btn-yellow:hover:not(:disabled){background:#e6c400;}
+.rr-btn-ghost{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.38);}
+.rr-btn-ghost:hover:not(:disabled){background:rgba(255,255,255,.3);}
+.rr-btn-dl{background:#FFDA1A;color:#003A8C;font-weight:700;}
+.rr-btn-dl:hover:not(:disabled){background:#e6c400;}
+.rr-btn-copy{background:#22c55e;color:#fff;}
+.rr-btn-copy:hover:not(:disabled){background:#16a34a;}
+.rr-btn-outline{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3);font-size:10.5px;}
+.rr-btn-outline:hover:not(:disabled){background:rgba(255,255,255,.22);}
 
-        input[type="file"] {
-            display: none;
-        }
+/* MODAL BASE */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:5000;align-items:center;justify-content:center;padding:16px;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:#fff;border-radius:12px;box-shadow:0 24px 64px rgba(0,0,0,.4);width:100%;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;animation:modal-in .18s ease;}
+@keyframes modal-in{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+.modal-header{background:#0051BA;padding:11px 18px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-shrink:0;}
+.modal-header h3{color:#FFDA1A;font-size:13px;font-weight:700;margin:0;}
+.modal-header-sub{color:rgba(255,255,255,.6);font-size:10.5px;margin-top:2px;}
+.modal-close{background:rgba(255,255,255,.15);border:none;color:#fff;font-size:17px;cursor:pointer;border-radius:6px;padding:1px 8px;line-height:1.5;transition:background .12s;flex-shrink:0;}
+.modal-close:hover{background:rgba(255,255,255,.3);}
+.modal-body{flex:1;overflow:auto;padding:13px 16px;background:#fff;}
+.modal-footer{padding:9px 16px;background:#f7f9fc;border-top:1px solid #e0e6ee;display:flex;gap:7px;justify-content:flex-end;flex-shrink:0;flex-wrap:wrap;}
 
-        .btn {
-            background-color: var(--ikea-yellow);
-            color: var(--ikea-blue);
-            padding: 12px 24px;
-            font-size: 16px;
-            font-weight: bold;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: transform 0.2s, background-color 0.2s;
-            display: inline-block;
-        }
+/* CONFLICT MODAL */
+.modal-alert{background:#fff8e1;border:1px solid #ffc107;border-radius:6px;padding:8px 11px;font-size:11px;color:#856404;line-height:1.55;margin-bottom:10px;}
 
-        .btn-small {
-            padding: 8px 16px;
-            font-size: 14px;
-        }
+/* ── CONFLICT TABLE (slim + red conflict rows) ─────── */
+.cf-table{width:100%;border-collapse:collapse;font-size:11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;}
+.cf-table thead th{background:#0051BA!important;color:#FFDA1A!important;padding:5px 7px;border:1px solid #003A8C;font-size:10px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;user-select:none;position:sticky;top:0;z-index:2;}
+.cf-table thead th:first-child{text-align:left;}
+.cf-table thead th .th-inner{display:flex;align-items:center;justify-content:flex-end;gap:3px;}
+.cf-table thead th:first-child .th-inner{justify-content:flex-start;}
+/* filter btn */
+.cf-th-filter{background:none;border:none;color:rgba(255,255,255,.55);cursor:pointer;padding:0 2px;font-size:9px;line-height:1;border-radius:3px;transition:color .1s;flex-shrink:0;}
+.cf-th-filter:hover,.cf-th-filter.active{color:#FFDA1A;}
+/* slim cells */
+.cf-table td{padding:2px 7px;border:1px solid #e8e8e8;color:#333!important;background:#fff!important;vertical-align:middle;font-size:10.5px;white-space:nowrap;}
+.cf-table tbody tr:nth-child(even) td{background:#fafafa!important;}
+.cf-table tbody tr:hover td{background:#f0f5ff!important;}
+.cf-table tbody tr.cf-hidden{display:none;}
+/* RED: rows where this PO appears in multiple states */
+.cf-table tbody tr.cf-conflict-row td{background:#fee2e2!important;color:#991b1b!important;}
+.cf-table tbody tr.cf-conflict-row:hover td{background:#fecaca!important;}
+.cf-table tbody tr.cf-conflict-row td .estado-pill{outline:1.5px solid #f87171;}
 
-        .btn:hover {
-            background-color: #e6c600;
-            transform: scale(1.05);
-        }
+/* FROZEN COLUMNS */
+.cf-frozen-th{background:#003A8C!important;z-index:4;border-right:2px solid #FFDA1A!important;}
+.cf-frozen-td{z-index:2;border-right:2px solid #b8d0f0!important;}
+.cf-pin-btn{background:none;border:none;cursor:pointer;padding:1px 3px;font-size:10px;line-height:1;opacity:0;transition:opacity .15s;flex-shrink:0;border-radius:3px;}
+.cf-table thead th:hover .cf-pin-btn,.cf-pin-btn.cf-pin-active{opacity:1;}
+.cf-pin-btn.cf-pin-active{background:rgba(255,218,26,.2);color:#FFDA1A;}
+.cf-pin-btn:hover{background:rgba(255,255,255,.15);}
 
-        /* Estilos de Tablas */
-        .table-container {
-            overflow-x: auto;
-        }
+/* Sort buttons inside popup */
+.cf-sort-btns{display:flex;gap:3px;margin-bottom:6px;}
+.cf-sort-btns button{flex:1;border:1px solid #c5d5ee;background:#e8f0fb;border-radius:4px;padding:2px 4px;font-size:9.5px;cursor:pointer;font-family:inherit;color:#003A8C;font-weight:600;white-space:nowrap;}
+.cf-sort-btns button:hover{background:#d0e3f7;}
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-            font-size: 14px;
-        }
+/* Filter popup */
+.cf-popup-wrap{position:relative;display:inline-flex;}
+.cf-popup{position:absolute;top:calc(100% + 4px);background:#fff;border:1px solid #d0d7de;border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.2);min-width:175px;max-width:250px;z-index:9999;animation:modal-in .12s ease;padding:9px;}
+/* first column: open to the right; others: open to the left (right:0) */
+.cf-popup.pop-right{left:0;}
+.cf-popup.pop-left{right:0;}
+.cf-popup input[type=text]{width:100%;box-sizing:border-box;border:1px solid #c5d5ee;border-radius:5px;padding:3px 7px;font-size:11px;outline:none;margin-bottom:6px;}
+.cf-popup input[type=text]:focus{border-color:#0051BA;}
+.cf-popup-actions{display:flex;gap:5px;margin-bottom:6px;}
+.cf-popup-actions button{flex:1;border:1px solid #e0e0e0;background:#f7f9fc;border-radius:4px;padding:2px 5px;font-size:10px;cursor:pointer;font-family:inherit;}
+.cf-popup-actions button:hover{background:#e8f0fb;}
+.cf-popup-list{max-height:150px;overflow-y:auto;display:flex;flex-direction:column;gap:1px;margin-bottom:7px;}
+.cf-popup-list label{display:flex;align-items:center;gap:5px;font-size:10.5px;padding:2px 3px;border-radius:3px;cursor:pointer;}
+.cf-popup-list label:hover{background:#f0f5ff;}
+.cf-popup-list input[type=checkbox]{accent-color:#0051BA;width:12px;height:12px;flex-shrink:0;}
+.cf-popup-apply{display:flex;gap:5px;}
+.cf-popup-apply button{flex:1;border:none;border-radius:5px;padding:4px 7px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
+.cf-btn-apply{background:#0051BA;color:#fff;}
+.cf-btn-apply:hover{background:#003A8C;}
+.cf-btn-cancel{background:#f0f0f0;color:#333;}
+.cf-btn-cancel:hover{background:#e0e0e0;}
+.cf-active-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:9px;font-size:11px;color:#555;}
+.cf-chip{display:inline-flex;align-items:center;gap:3px;background:#e8f0fb;color:#003A8C;border:1px solid #b8d0f0;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:600;}
+.cf-chip-remove{background:none;border:none;color:#0051BA;cursor:pointer;padding:0;font-size:12px;line-height:1;}
 
-        th {
-            background-color: var(--ikea-blue);
-            color: white;
-            padding: 12px;
-            text-align: right;
-            border: 1px solid #004480;
-        }
-        th:first-child { text-align: left; }
+/* EXPORT PREVIEW MODAL */
+.exp-modal-box{max-width:1100px;}
+.exp-layout{display:flex;gap:12px;height:calc(92vh - 125px);}
+.exp-panel{width:210px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;overflow-y:auto;}
+.exp-panel-section{background:#f7f9fc;border:1px solid #e0e6ee;border-radius:8px;padding:9px 11px;}
+.exp-panel-section h4{font-size:10px;font-weight:700;color:#0051BA;text-transform:uppercase;letter-spacing:.5px;margin:0 0 7px 0;}
+.exp-check-list{display:flex;flex-direction:column;gap:3px;}
+.exp-check-list label{display:flex;align-items:center;gap:5px;font-size:11px;color:#333;cursor:pointer;border-radius:3px;padding:1px 2px;}
+.exp-check-list label:hover{background:#e8f0fb;}
+.exp-check-list input[type=checkbox],.exp-check-list input[type=radio]{accent-color:#0051BA;width:12px;height:12px;flex-shrink:0;}
+.exp-sel-btns{display:flex;gap:4px;margin-bottom:6px;}
+.exp-sel-btns button{flex:1;border:1px solid #c5d5ee;background:#fff;border-radius:4px;padding:2px 4px;font-size:10px;cursor:pointer;font-family:inherit;color:#0051BA;font-weight:600;}
+.exp-sel-btns button:hover{background:#e8f0fb;}
+.exp-preview-wrap{flex:1;overflow:auto;background:#dde1e7;border-radius:8px;display:flex;align-items:flex-start;justify-content:center;padding:12px;}
+.exp-preview-wrap img{max-width:100%;height:auto;border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,.2);background:#fff;}
+.exp-preview-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;color:#999;font-size:13px;gap:10px;}
+.exp-loading{display:flex;align-items:center;justify-content:center;height:100%;width:100%;color:#0051BA;font-size:13px;font-weight:600;gap:8px;}
 
-        td {
-            padding: 10px 12px;
-            border: 1px solid #ddd;
-            text-align: right;
-        }
-        td:first-child { text-align: left; }
+/* ESTADO PILLS */
+.estado-pill{display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;}
+.e-terminado{background:#d1fae5;color:#065f46;}
+.e-en-ruta{background:#fee2e2;color:#991b1b;}
+.e-planif{background:#fef3c7;color:#92400e;}
+.e-pendiente{background:#ede9fe;color:#5b21b6;}
+.e-other{background:#f3f4f6;color:#374151;}
 
-        .region-row {
-            background-color: #eef5fc;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
+/* TOAST */
+#toast{visibility:hidden;position:fixed;z-index:9999;left:50%;bottom:30px;transform:translateX(-50%);background:#0051BA;color:#FFDA1A;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .25s,bottom .25s;white-space:nowrap;}
+#toast.show{visibility:visible;opacity:1;bottom:48px;}
 
-        .region-row:hover {
-            background-color: #dbeaf7;
-        }
+/* ── IKEA EXCEL SELECTION ── */
+.ik-sel-cell {
+  cursor: cell !important;
+  user-select: none !important;
+  position: relative;
+  transition: background .07s;
+}
+.ik-sel-cell.ik-selected {
+  background: rgba(0,81,186,.20) !important;
+  outline: 1px solid rgba(0,81,186,.55);
+  outline-offset: -1px;
+}
+.ik-sel-cell.ik-anchor {
+  background: rgba(0,81,186,.32) !important;
+  outline: 2px solid #0051BA !important;
+  outline-offset: -2px;
+  box-shadow: inset 0 0 14px rgba(0,81,186,.12), 0 0 0 1px rgba(0,81,186,.3);
+}
+/* glow flash on copy */
+.ik-copy-glow {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%) scale(.92);
+  background: rgba(63,185,80,.12);
+  border: 1px solid #3fb950;
+  color: #3fb950;
+  font-weight: 700; font-size: 13px;
+  padding: 10px 26px;
+  border-radius: 9px;
+  z-index: 99999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s, transform .18s;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 32px rgba(63,185,80,.28);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+.ik-copy-glow.ik-glow-show {
+  opacity: 1;
+  transform: translate(-50%,-50%) scale(1);
+}
 
-        .patente-row td {
-            background-color: white;
-            color: #555;
-        }
-
-        .patente-row td:first-child {
-            padding-left: 40px;
-            position: relative;
-        }
-        
-        .patente-row td:first-child::before {
-            content: '↳';
-            position: absolute;
-            left: 20px;
-            color: #aaa;
-        }
-
-        .toggle-icon {
-            display: inline-block;
-            width: 20px;
-            text-align: center;
-            color: var(--ikea-blue);
-            font-weight: bold;
-            margin-right: 5px;
-        }
-
-        tfoot th {
-            background-color: #004480;
-            font-weight: bold;
-        }
-
-        /* Resumen */
-        #texto-resumen {
-            white-space: pre-wrap;
-            background: #f9f9f9;
-            padding: 15px;
-            border-left: 4px solid var(--ikea-blue);
-            font-family: monospace;
-            font-size: 14px;
-            margin-top: 15px;
-        }
-
-        /* Controles de Gráfico */
-        .chart-controls {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        select {
-            padding: 10px;
-            font-size: 16px;
-            border: 2px solid var(--ikea-blue);
-            border-radius: 4px;
-            outline: none;
-            min-width: 250px;
-        }
-
-        .chart-container {
-            position: relative;
-            height: 400px;
-            width: 100%;
-        }
-
-        /* Notificación Toast */
-        #toast {
-            visibility: hidden;
-            min-width: 250px;
-            background-color: var(--ikea-blue);
-            color: var(--ikea-yellow);
-            text-align: center;
-            border-radius: 8px;
-            padding: 16px;
-            position: fixed;
-            z-index: 1000;
-            left: 50%;
-            bottom: 30px;
-            transform: translateX(-50%);
-            font-size: 16px;
-            font-weight: bold;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            opacity: 0;
-            transition: opacity 0.3s, bottom 0.3s;
-        }
-
-        #toast.show {
-            visibility: visible;
-            opacity: 1;
-            bottom: 50px;
-        }
-
-    </style>
+</style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>Reporte Planificación - IKEA</h1>
-        <div class="header-subtitle">
-            Avance en Ruta <span id="hora-carga" class="header-time"></span>
-        </div>
+<div class="ik-header">
+  <div class="ik-header-left">
+    <span class="ik-header-icon">📊</span>
+    <div>
+      <h1>Reporte de Rutas — IKEA</h1>
+      <div class="ik-header-sub">Avance en Ruta · Planificación · Gráficos</div>
     </div>
+  </div>
+  <div class="ik-header-right">
+    <a href="index.html" class="ik-back">← Inicio</a>
+    <span style="font-size:11px;color:rgba(255,255,255,.45);font-family:monospace" id="hora-carga"></span>
+  </div>
+</div>
 
-    <div class="container">
-        <div class="card upload-section">
-            <label for="csvFileInput" class="btn">📂 Cargar Archivo CSV</label>
-            <input type="file" id="csvFileInput" accept=".csv" onchange="handleFileSelect(event)">
-            <p id="file-name" style="margin-top: 15px; font-weight: bold; color: var(--ikea-blue);"></p>
-        </div>
+<div class="rr-container">
 
-        <div class="card" id="card-resumen" style="display: none;">
-            <h2>
-                📝 Resumen Ejecutivo
-                <button class="btn btn-small" onclick="copiarResumen()">📋 Copiar Resumen</button>
-            </h2>
-            <div id="texto-resumen"></div>
-        </div>
-
-        <div class="card" id="card-numeros" style="display: none;">
-            <h2>📊 Avance en Ruta</h2>
-            <div class="table-container" id="tabla-numeros"></div>
-        </div>
-
-        <div class="card" id="card-porcentajes" style="display: none;">
-            <h2>📈 Avance en Ruta %</h2>
-            <div class="table-container" id="tabla-porcentajes"></div>
-        </div>
-
-        <div class="card" id="card-graficos" style="display: none;">
-            <h2>
-                📈 Gráfico de Avance por Región
-            </h2>
-            <p style="font-size: 14px; color: #666; margin-top: -10px;">💡 <i>Haz clic en la barra de cualquier patente en el gráfico para copiar su nombre.</i></p>
-            
-            <div class="chart-controls">
-                <select id="region-select" onchange="updateChart()">
-                    <option value="">Selecciona una Región...</option>
-                </select>
-                <button class="btn btn-small" id="btn-copy-patentes" style="display:none;" onclick="copiarPatentesRegion()">📋 Copiar Patentes de la Región</button>
-            </div>
-
-            <div class="chart-container">
-                <canvas id="avanceChart"></canvas>
-            </div>
-        </div>
+  <!-- UPLOAD -->
+  <div class="rr-card">
+    <div class="rr-card-body" style="padding:0">
+      <label class="upload-zone" for="csvFileInput">
+        <div style="font-size:30px;margin-bottom:6px">📂</div>
+        <div style="font-size:14px;font-weight:700;color:#0051BA;margin-bottom:3px">Cargar Archivo CSV</div>
+        <div style="font-size:11px;color:#999">Columnas: Commerce · Patente · Region · Estado · ParentOrder</div>
+        <input type="file" id="csvFileInput" accept=".csv" onchange="handleFileSelect(event)">
+        <p id="file-name"></p>
+      </label>
     </div>
+  </div>
 
-    <div id="toast">Copiado al portapapeles</div>
+  <!-- RESUMEN -->
+  <div class="rr-card" id="card-resumen" style="display:none">
+    <div class="rr-card-header">
+      <h2>📝 Resumen Ejecutivo</h2>
+      <div class="rr-btn-group">
+        <button class="rr-btn rr-btn-yellow" onclick="copiarResumen()">📋 Copiar texto</button>
+        <button class="rr-btn rr-btn-ghost" onclick="abrirExportModal('resumen')">🖼 Exportar</button>
+      </div>
+    </div>
+    <div class="rr-card-body"><div id="texto-resumen"></div></div>
+  </div>
 
-    <script>
-        let globalData = {};
-        let uniqueEstados = [];
-        let myChart = null;
+  <!-- TABLA NÚMEROS -->
+  <div class="rr-card" id="card-numeros" style="display:none">
+    <div class="rr-card-header">
+      <h2>📊 Avance en Ruta — Números</h2>
+      <div class="rr-btn-group">
+        <span id="conflicts-badge-num" class="conflict-badge" style="display:none">⚠️ Conflictos</span>
+        <button class="rr-btn rr-btn-outline" onclick="toggleAllRows('num')">⊞ Expandir todo</button>
+        <button class="rr-btn rr-btn-ghost" onclick="abrirExportModal('numeros')">🖼 Exportar</button>
+      </div>
+    </div>
+    <div class="rr-card-body">
+      <div class="rr-table-wrap" id="tabla-numeros"></div>
+    </div>
+  </div>
 
-        // Función para mostrar notificaciones (Toast)
-        function showToast(message) {
-            let toast = document.getElementById("toast");
-            toast.innerText = message;
-            toast.className = "show";
-            setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+  <!-- TABLA PORCENTAJES -->
+  <div class="rr-card" id="card-porcentajes" style="display:none">
+    <div class="rr-card-header">
+      <h2>📈 Avance en Ruta — Porcentajes</h2>
+      <div class="rr-btn-group">
+        <span id="conflicts-badge-pct" class="conflict-badge" style="display:none">⚠️ Filas &gt;100%</span>
+        <button class="rr-btn rr-btn-outline" onclick="toggleAllRows('pct')">⊞ Expandir todo</button>
+        <button class="rr-btn rr-btn-ghost" onclick="abrirExportModal('porcentajes')">🖼 Exportar</button>
+      </div>
+    </div>
+    <div class="rr-card-body">
+      <div class="rr-table-wrap" id="tabla-porcentajes"></div>
+    </div>
+  </div>
+
+  <!-- GRÁFICO -->
+  <div class="rr-card" id="card-graficos" style="display:none">
+    <div class="rr-card-header">
+      <h2>📈 Gráfico de Avance por Región</h2>
+      <div class="rr-btn-group">
+        <button class="rr-btn rr-btn-ghost" id="btn-copy-patentes" style="display:none" onclick="copiarPatentesRegion()">📋 Patentes</button>
+        <button class="rr-btn rr-btn-ghost" id="btn-dl-chart" style="display:none" onclick="abrirExportModal('grafico')">🖼 Exportar</button>
+      </div>
+    </div>
+    <div class="rr-card-body">
+      <p style="font-size:11px;color:#777;margin-bottom:10px">💡 Clic en una barra para copiar la patente.</p>
+      <div class="chart-controls">
+        <select id="region-select" onchange="updateChart()">
+          <option value="">Selecciona una Región...</option>
+        </select>
+      </div>
+      <div class="chart-outer" id="capture-chart">
+        <div class="chart-container"><canvas id="avanceChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ MODAL: CONFLICTOS ═══ -->
+<div class="modal-overlay" id="modal-conflictos" onclick="closeModalOutside(event,'modal-conflictos')">
+  <div class="modal-box" style="max-width:1200px;width:96vw;max-height:90vh">
+    <div class="modal-header">
+      <div>
+        <h3 id="modal-title">Conflictos de ParentOrder</h3>
+        <div class="modal-header-sub" id="modal-subtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-conflictos')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-alert">
+        ⚠️ <b>¿Qué está pasando?</b> Un mismo <b>ParentOrder</b> tiene LPNs en más de un estado (ej: uno "Planificado" y otro "En Ruta"). Como el conteo es por PO único, se registra en <i>ambos</i> estados, inflando los totales sobre 100%. Las filas en <span style="color:#991b1b;font-weight:700">rojo</span> son los POs con múltiples estados. Usá los filtros ▼ para revisar.
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+        <button class="rr-btn rr-btn-yellow" onclick="exportCFTableCSV()" style="font-size:10.5px">⬇️ Exportar CSV</button>
+        <button class="rr-btn" onclick="copiarTablaConflictos()" style="background:#22c55e;color:#fff;font-size:10.5px">📋 Copiar tabla</button>
+        <button class="rr-btn" id="cf-edit-btn" onclick="toggleCFEditMode()" style="background:#e8f0fb;color:#003A8C;border:1px solid #b8d0f0;font-size:10.5px">✏️ Modo edición</button>
+        <span id="cf-edit-hint" style="display:none;font-size:10px;color:#856404;background:#fff8e1;border:1px solid #ffc107;border-radius:4px;padding:2px 8px;">✏️ Edición activa — clic en celda para editar, 🗑️ para eliminar fila</span>
+      </div>
+      <div id="cf-active-filters" class="cf-active-bar" style="display:none"></div>
+      <div style="overflow-x:auto;max-height:62vh;overflow-y:auto;position:relative;" id="cf-table-wrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: DETALLE PATENTE ═══ -->
+<div class="modal-overlay" id="modal-patente" onclick="closeModalOutside(event,'modal-patente')">
+  <div class="modal-box" style="max-width:1200px;width:96vw;max-height:90vh">
+    <div class="modal-header">
+      <div>
+        <h3 id="pt-modal-title">Detalle Patente</h3>
+        <div class="modal-header-sub" id="pt-modal-subtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-patente')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+        <button class="rr-btn rr-btn-yellow" onclick="exportPTTableCSV()" style="font-size:10.5px">⬇️ Exportar CSV</button>
+        <button class="rr-btn" onclick="copiarTablaPT()" style="background:#22c55e;color:#fff;font-size:10.5px">📋 Copiar tabla</button>
+      </div>
+      <div id="pt-active-filters" class="cf-active-bar" style="display:none"></div>
+      <div style="overflow-x:auto;max-height:62vh;overflow-y:auto;position:relative;" id="pt-table-wrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: EXPORT PREVIEW ═══ -->
+<div class="modal-overlay" id="modal-export" onclick="closeModalOutside(event,'modal-export')">
+  <div class="modal-box exp-modal-box">
+    <div class="modal-header">
+      <div>
+        <h3 id="exp-title">Vista Previa — Exportar</h3>
+        <div class="modal-header-sub">Configurá la vista y luego copiá o descargá la imagen</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-export')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:10px 12px">
+      <div class="exp-layout">
+        <div class="exp-panel" id="exp-panel"></div>
+        <div class="exp-preview-wrap" id="exp-preview-wrap">
+          <div class="exp-preview-placeholder">
+            <span style="font-size:32px">🖼</span>
+            <span>Presioná <b>Actualizar vista</b></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="rr-btn rr-btn-yellow" onclick="actualizarPreview()">🔄 Actualizar vista</button>
+      <button class="rr-btn rr-btn-copy" id="exp-btn-copy" onclick="copiarImagenPortapapeles()" disabled>📋 Copiar imagen</button>
+      <button class="rr-btn rr-btn-dl" id="exp-btn-dl" onclick="descargarImagenExport()" disabled>⬇️ Descargar PNG</button>
+    </div>
+  </div>
+</div>
+
+<div id="offscreen-render" style="position:fixed;left:-99999px;top:0;pointer-events:none;z-index:-1"></div>
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+let globalData={}, uniqueEstados=[], myChart=null;
+let allOriginalRows=[];
+let rawRowsByPO={}, conflictedByPatente={}, hasConflicts=false;
+let exportType='numeros', exportCanvas=null;
+let cfFilters={}, cfAllRows=[], cfColumns=[];
+let cfFrozenCols=new Set(), cfCurrentPatente='';
+let ptAllRows=[], ptColumns=[], ptFilters={}, ptFrozenCols=new Set(), ptSortCol=null, ptSortDir=1;
+let cfSortCol=null, cfSortDir=1;
+// track expand state per table prefix
+let expandState={num:false, pct:false};
+
+// ═══════════════════════════════════════════════════════════
+//  TOAST / CLIPBOARD
+// ═══════════════════════════════════════════════════════════
+function showToast(msg){const t=document.getElementById('toast');t.innerText=msg;t.className='show';clearTimeout(t._t);t._t=setTimeout(()=>t.className='',3500);}
+function copiarTexto(texto,msg){const fn=()=>{const ta=Object.assign(document.createElement('textarea'),{value:texto,style:'position:fixed;top:-9999px'});document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast(msg);};navigator.clipboard?navigator.clipboard.writeText(texto).then(()=>showToast(msg)).catch(fn):fn();}
+
+// ═══════════════════════════════════════════════════════════
+//  FILE LOADING
+// ═══════════════════════════════════════════════════════════
+function getKey(row,key){const k=Object.keys(row).find(k=>k.trim().toLowerCase()===key.toLowerCase());return k?row[k]:null;}
+function handleFileSelect(event){
+  const file=event.target.files[0];if(!file)return;
+  document.getElementById('file-name').innerText='⏳ Procesando...';
+  Papa.parse(file,{header:true,skipEmptyLines:true,
+    complete(r){allOriginalRows=r.data.map(row=>({...row}));processData(r.data);const n=new Date();document.getElementById('hora-carga').innerText=`| ${n.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`;document.getElementById('file-name').innerText=`✅ ${file.name}`;},
+    error(e){document.getElementById('file-name').innerText='❌ '+e;}
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PROCESS DATA
+// ═══════════════════════════════════════════════════════════
+function processData(data){
+  const processed={},estadosSet=new Set();
+  rawRowsByPO={};conflictedByPatente={};hasConflicts=false;
+  data.forEach(row=>{
+    const commerce=(getKey(row,'Commerce')||'').trim(),patente=(getKey(row,'Patente')||'').trim();
+    const region=(getKey(row,'Region')||'Sin Región').trim(),estado=(getKey(row,'Estado')||'Sin Estado').trim();
+    const parentOrder=(getKey(row,'ParentOrder')||'').trim();
+    if(commerce.toLowerCase()!=='ikea'||patente==='') return;
+    estadosSet.add(estado);
+    if(!rawRowsByPO[parentOrder])rawRowsByPO[parentOrder]=[];
+    rawRowsByPO[parentOrder].push(row);
+    if(!processed[region])processed[region]={orders:new Set(),estados:{},patentes:{}};
+    processed[region].orders.add(parentOrder);
+    if(!processed[region].estados[estado])processed[region].estados[estado]=new Set();
+    processed[region].estados[estado].add(parentOrder);
+    const pats=processed[region].patentes;
+    if(!pats[patente])pats[patente]={orders:new Set(),estados:{},poStates:{}};
+    pats[patente].orders.add(parentOrder);
+    if(!pats[patente].estados[estado])pats[patente].estados[estado]=new Set();
+    pats[patente].estados[estado].add(parentOrder);
+    if(!pats[patente].poStates[parentOrder])pats[patente].poStates[parentOrder]=new Set();
+    pats[patente].poStates[parentOrder].add(estado);
+  });
+  Object.values(processed).forEach(rData=>{
+    Object.entries(rData.patentes).forEach(([patente,pData])=>{
+      const conf=Object.entries(pData.poStates).filter(([,s])=>s.size>1).map(([po,s])=>({po,states:[...s],rows:rawRowsByPO[po]||[]}));
+      if(conf.length){if(!conflictedByPatente[patente])conflictedByPatente[patente]=[];conflictedByPatente[patente].push(...conf);hasConflicts=true;}
+    });
+  });
+  uniqueEstados=[...estadosSet].sort();globalData=processed;renderAll();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════
+function renderAll(){
+  ['card-resumen','card-numeros','card-porcentajes','card-graficos'].forEach(id=>document.getElementById(id).style.display='block');
+  generarResumen();
+  expandState={num:false,pct:false};
+  document.getElementById('tabla-numeros').innerHTML=buildTableHTML(false,Object.keys(globalData),false,false);
+  document.getElementById('tabla-porcentajes').innerHTML=buildTableHTML(true,Object.keys(globalData),false,false);
+  if(hasConflicts){document.getElementById('conflicts-badge-num').style.display='inline-flex';document.getElementById('conflicts-badge-pct').style.display='inline-flex';}
+  initChartSelector();
+  // update expand button labels
+  updateExpandBtnLabel('num');updateExpandBtnLabel('pct');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  EXPAND / COLLAPSE ALL
+// ═══════════════════════════════════════════════════════════
+function toggleAllRows(prefix){
+  expandState[prefix]=!expandState[prefix];
+  const newExpanded=expandState[prefix];
+  // find all patente rows and region icons for this prefix
+  const container=document.getElementById(`tabla-${prefix==='num'?'numeros':'porcentajes'}`);
+  container.querySelectorAll('tr.patente-row').forEach(r=>r.style.display=newExpanded?'table-row':'none');
+  container.querySelectorAll('.toggle-icon').forEach(icon=>{icon.innerText=newExpanded?'[-]':'[+]';});
+  updateExpandBtnLabel(prefix);
+}
+function updateExpandBtnLabel(prefix){
+  const btn=document.querySelector(`#card-${prefix==='num'?'numeros':'porcentajes'} .rr-btn-outline`);
+  if(btn)btn.innerText=(expandState[prefix]?'⊟ Contraer todo':'⊞ Expandir todo');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RESUMEN
+// ═══════════════════════════════════════════════════════════
+function generarResumen(){
+  let txt='';
+  Object.keys(globalData).sort().forEach(region=>{
+    const rData=globalData[region],upper=region.toUpperCase();
+    if(!upper.includes('METROPOLITANA')&&!upper.includes('VALPARAISO')&&!upper.includes('VALPARAÍSO'))return;
+    const total=rData.orders.size;
+    txt+=`📍 [${region.toUpperCase()}]\n   Total: ${total} órdenes — ${Object.keys(rData.patentes).length} vehículos.\n`;
+    uniqueEstados.forEach(e=>{const c=rData.estados[e]?rData.estados[e].size:0;if(c>0)txt+=`   - ${e}: ${c} (${((c/total)*100).toFixed(1)}%)\n`;});
+    txt+='\n';
+  });
+  document.getElementById('texto-resumen').innerText=(txt||'Sin datos para RM ni Valparaíso.').trim();
+}
+function copiarResumen(){copiarTexto(document.getElementById('texto-resumen').innerText,'✅ Resumen copiado');}
+
+// ═══════════════════════════════════════════════════════════
+//  BUILD TABLE
+// ═══════════════════════════════════════════════════════════
+// Returns rgb string for a 0-100 pct: red(0%) → orange(80%) → green(100%)
+function termGradient(pct){
+  const p=Math.max(0,Math.min(100,pct));
+  // stops: [pct, bgR,bgG,bgB, txtR,txtG,txtB]
+  // saturated Excel-style: vivid pastel bg + bold dark text
+  const stops=[
+    [0,   255,153,153,  139,  0,  0],   // saturated red bg / deep red txt
+    [80,  255,153,153,  139,  0,  0],   // same red at 80%
+    [90,  255,214,102,  140, 70,  0],   // saturated orange bg / dark orange txt
+    [100, 140,220,140,    0, 90,  0],   // saturated green bg / dark green txt
+  ];
+  let s0=stops[0],s1=stops[1];
+  for(let i=0;i<stops.length-1;i++){if(p>=stops[i][0]&&p<=stops[i+1][0]){s0=stops[i];s1=stops[i+1];break;}}
+  const t=s1[0]===s0[0]?0:(p-s0[0])/(s1[0]-s0[0]);
+  const lerp=(a,b)=>Math.round(a+(b-a)*t);
+  const bg=`rgb(${lerp(s0[1],s1[1])},${lerp(s0[2],s1[2])},${lerp(s0[3],s1[3])})`;
+  const txt=`rgb(${lerp(s0[4],s1[4])},${lerp(s0[5],s1[5])},${lerp(s0[6],s1[6])})`;
+  return {bg,txt};
+}
+
+function buildTableHTML(isPercent,regions,expanded,clean){
+  // Find index of "Terminado" estado for gradient coloring
+  const termIdx=uniqueEstados.findIndex(e=>e.toLowerCase().includes('terminado'));
+
+  let html=`<table class="rr-table"><thead><tr><th style="text-align:left">Región / Patente</th>`;
+  uniqueEstados.forEach(e=>html+=`<th>${escH(e)}</th>`);
+  html+=`<th>Total</th>`;
+  // "%" column: show in live table but hide in clean export
+  if(isPercent&&!clean)html+=`<th style="text-align:center">%</th>`;
+  html+=`</tr></thead><tbody>`;
+  const colTotals={},grandTotal=new Set();
+  uniqueEstados.forEach(e=>colTotals[e]=new Set());
+  const sorted=(regions||Object.keys(globalData)).slice().sort();
+  sorted.forEach((region,rIdx)=>{
+    if(!globalData[region])return;
+    const rData=globalData[region],rTotal=rData.orders.size;
+    const rowId=`row-${isPercent?'pct':'num'}-${rIdx}`;
+    if(!isPercent)uniqueEstados.forEach(e=>{if(rData.estados[e])rData.estados[e].forEach(o=>{colTotals[e].add(o);grandTotal.add(o);});});
+    html+=`<tr class="region-row" onclick="toggleRows('${rowId}')"><td style="text-align:left"><span class="toggle-icon" id="icon-${rowId}">${expanded?'[-]':'[+]'}</span>${escH(region)}</td>`;
+    uniqueEstados.forEach(e=>{const v=rData.estados[e]?rData.estados[e].size:0;html+=`<td>${v>0?(isPercent?((v/rTotal)*100).toFixed(1)+'%':v):''}</td>`;});
+    html+=`<td><b>${rTotal>0?(isPercent?'100%':rTotal):''}</b></td>`;
+    if(isPercent&&!clean)html+=`<td></td>`;
+    html+=`</tr>`;
+    Object.keys(rData.patentes).sort().forEach(patente=>{
+      const pData=rData.patentes[patente],pTotal=pData.orders.size;
+      let sumPct=0;uniqueEstados.forEach(e=>{const v=pData.estados[e]?pData.estados[e].size:0;sumPct+=pTotal>0?(v/pTotal)*100:0;});
+      const isConf=isPercent&&sumPct>100.5;
+      const rowBg=isConf?'#fff8e1':'#fff',rowTxt=isConf?'#b45309':'#333';
+      const confBtn=(!clean&&isConf&&conflictedByPatente[patente])?`<button class="conflict-btn" onclick="openConflictModal('${escAttr(patente)}',event)">⚠️ Ver conflictos (${conflictedByPatente[patente].length} PO)</button>`:'';
+      const detailBtn=!clean?`<button class="conflict-btn" onclick="openPatenteModal('${escAttr(patente)}','${escAttr(region)}',event)" style="background:#e8f0fb;color:#003A8C;border-color:#b8d0f0">🔍 Ver filas</button>`:'';
+      html+=`<tr class="patente-row${isConf?' conflict-row':''} ${rowId}" style="display:${expanded?'table-row':'none'}">`;
+      html+=`<td style="text-align:left;background:${rowBg}!important;color:${rowTxt}!important;padding-left:28px;position:relative"><span style="position:absolute;left:12px;color:#bbb;font-size:10px">↳</span>${escH(patente)}${confBtn}${detailBtn}</td>`;
+      uniqueEstados.forEach((e,ei)=>{
+        const v=pData.estados[e]?pData.estados[e].size:0;
+        const display=v>0?(isPercent?((v/pTotal)*100).toFixed(1)+'%':v):'';
+        // Gradient on Terminado column in % table, for patente rows, no conflict override
+        // Also applies when v=0 (0% → red gradient) so the cell always shows color + "0%"
+        if(isPercent&&ei===termIdx&&pTotal>0&&!isConf){
+          const pctVal=(v/pTotal)*100;
+          const {bg,txt}=termGradient(pctVal);
+          const termDisplay=v>0?display:'0%';
+          html+=`<td style="background:${bg}!important;color:${txt}!important;font-weight:700">${termDisplay}</td>`;
+        } else {
+          html+=`<td style="background:${rowBg}!important;color:#333!important">${display}</td>`;
         }
+      });
+      html+=`<td style="background:${rowBg}!important;color:#333!important"><b>${pTotal>0?(isPercent?'100%':pTotal):''}</b></td>`;
+      if(isPercent&&!clean){html+=isConf?`<td style="background:${rowBg}!important;text-align:center"><span style="background:#ffc107;color:#000;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700">⚠️ ${sumPct.toFixed(1)}%</span></td>`:`<td style="text-align:center"><span style="color:#16a34a;font-size:11px;font-weight:700">✓</span></td>`;}
+      html+=`</tr>`;
+    });
+  });
+  html+=`</tbody>`;
+  if(!isPercent){html+=`<tfoot><tr><th style="text-align:left">Total General</th>`;uniqueEstados.forEach(e=>html+=`<th>${colTotals[e].size||''}</th>`);html+=`<th>${grandTotal.size||''}</th></tr></tfoot>`;}
+  return html+`</table>`;
+}
+function toggleRows(cls){
+  const rows=document.querySelectorAll(`.${cls}`),icon=document.getElementById(`icon-${cls}`);
+  if(!rows.length)return;
+  const open=rows[0].style.display==='none';
+  rows.forEach(r=>r.style.display=open?'table-row':'none');
+  if(icon)icon.innerText=open?'[-]':'[+]';
+}
 
-        // Función para copiar texto al portapapeles
-        function copiarAlPortapapeles(texto, mensajeExito) {
-            navigator.clipboard.writeText(texto).then(() => {
-                showToast(mensajeExito);
-            }).catch(err => {
-                console.error('Error al copiar: ', err);
-                alert("No se pudo copiar el texto. Tu navegador podría estar bloqueándolo.");
-            });
-        }
+// ═══════════════════════════════════════════════════════════
+//  CONFLICT MODAL — slim cells + red conflict rows + fixed popup positioning
+// ═══════════════════════════════════════════════════════════
+function openConflictModal(patente,event){
+  if(event)event.stopPropagation();
+  const conflicts=conflictedByPatente[patente];
+  const isReopen=(event===null); // called from save — preserve state
+  if(!conflicts||!conflicts.length){
+    if(isReopen){closeModal('modal-conflictos');showToast('✅ Sin más conflictos para esta patente');}
+    return;
+  }
+  document.getElementById('modal-title').innerText=`Conflictos — Patente: ${patente}`;
+  document.getElementById('modal-subtitle').innerText=`${conflicts.length} ParentOrder(s) con múltiples estados simultáneos`;
+  const knownCols=new Set(['commerce','patente','region','estado','parentorder']);
+  let extraCols=[];
+  if(conflicts[0].rows.length>0)extraCols=Object.keys(conflicts[0].rows[0]).filter(k=>!knownCols.has(k.trim().toLowerCase()));
+  cfColumns=['Estado','Patente','Region','ParentOrder',...extraCols];
+  cfFilters={};cfAllRows=[];
+  if(!isReopen){cfEditMode=false;cfFrozenCols=new Set();}
+  cfCurrentPatente=patente;
+  // Build a set of conflicted POs for red highlighting
+  const conflictedPOs=new Set(conflicts.map(c=>c.po));
+  conflicts.forEach(({po,rows})=>{
+    rows.forEach(row=>{
+      cfAllRows.push({
+        Estado:(getKey(row,'Estado')||'').trim(),
+        Patente:(getKey(row,'Patente')||'').trim(),
+        Region:(getKey(row,'Region')||'').trim(),
+        ParentOrder:po,
+        _isConflict:conflictedPOs.has(po),
+        ...Object.fromEntries(extraCols.map(c=>[c,String(row[c]??'')]))
+      });
+    });
+  });
+  // Sync edit button UI state
+  const editBtn=document.getElementById('cf-edit-btn');
+  const hint=document.getElementById('cf-edit-hint');
+  if(editBtn){editBtn.style.background=cfEditMode?'#0051BA':'#e8f0fb';editBtn.style.color=cfEditMode?'#FFDA1A':'#003A8C';editBtn.innerText=cfEditMode?'✅ Salir edición':'✏️ Modo edición';}
+  if(hint)hint.style.display=cfEditMode?'inline':'none';
+  renderCFTable();
+  document.getElementById('cf-active-filters').style.display='none';
+  document.getElementById('modal-conflictos').classList.add('open');
+}
 
-        function getKey(row, targetKey) {
-            const foundKey = Object.keys(row).find(k => k.trim().toLowerCase() === targetKey.toLowerCase());
-            return foundKey ? row[foundKey] : null;
-        }
+function renderCFTable(){
+  // Build frozen col left offsets
+  const cols=cfColumns.filter(c=>c!=='_isConflict');
+  const frozenArr=[...cfFrozenCols].filter(c=>cols.includes(c));
+  // We'll compute left offsets after render via JS
+  const isFrozen=c=>cfFrozenCols.has(c);
 
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+  let html=`<table class="cf-table" id="cf-main-table"><thead><tr>`;
+  if(cfEditMode)html+=`<th style="width:28px;text-align:center;position:sticky;top:0;z-index:3;background:#0051BA"><div class="th-inner" style="justify-content:center">🗑️</div></th>`;
+  cols.forEach((col,ci)=>{
+    const isActive=cfFilters[ci]&&cfFilters[ci].size>0;
+    const frozen=isFrozen(col);
+    const popDir=ci===0?'pop-right':'pop-left';
+    const pinBtn=`<button class="cf-pin-btn${frozen?' cf-pin-active':''}" onclick="toggleCFFreeze('${escAttr(col)}',event)" title="${frozen?'Desanclar':'Anclar columna'}">📌</button>`;
+    const frozenStyle=frozen?`cf-frozen-th" data-frozen-col="${escH(col)}`:'';
+    html+=`<th class="${frozenStyle}" data-col="${escH(col)}"><div class="th-inner">${escH(col)}${pinBtn}<div class="cf-popup-wrap"><button class="cf-th-filter${isActive?' active':''}" onclick="toggleCFPopup(${ci},event)" title="Filtrar">▼</button><div class="cf-popup ${popDir}" id="cf-popup-${ci}" style="display:none"></div></div></div></th>`;
+  });
+  html+=`</tr></thead><tbody>`;
+  // Apply sort
+  let displayRows=[...cfAllRows.map((r,i)=>({...r,_origIdx:i}))];
+  if(cfSortCol){displayRows.sort((a,b)=>{const av=String(a[cfSortCol]||'').toLowerCase(),bv=String(b[cfSortCol]||'').toLowerCase();return av<bv?-cfSortDir:av>bv?cfSortDir:0;});}
+  displayRows.forEach((row,_ri)=>{const ri=row._origIdx;
+    const hidden=Object.entries(cfFilters).some(([ci,vals])=>vals.size>0&&!vals.has(row[cfColumns[ci]]));
+    const conflictCls=row._isConflict?'cf-conflict-row':'';
+    html+=`<tr class="${[hidden?'cf-hidden':'',conflictCls].filter(Boolean).join(' ')}" data-ri="${ri}">`;
+    if(cfEditMode)html+=`<td style="text-align:center;padding:1px 4px"><button onclick="deleteCFRow(${ri})" title="Eliminar fila" style="background:none;border:none;cursor:pointer;font-size:12px;color:#ef4444;padding:0;line-height:1">🗑️</button></td>`;
+    cols.forEach(col=>{
+      if(col==='_isConflict')return;
+      let cellContent='';
+      if(col==='Estado')cellContent=estadoPill(row[col]);
+      else if(col==='ParentOrder')cellContent=`<span style="font-family:monospace;font-size:10px">${escH(row[col])}</span>`;
+      else cellContent=escH(row[col]);
+      const frozen=isFrozen(col);
+      const frozenCls=frozen?`cf-frozen-td" data-frozen-col="${escH(col)}`:'';
+      if(cfEditMode&&col!=='Estado'){
+        html+=`<td class="${frozenCls}" onclick="startCFEdit(${ri},'${col}',this)" style="cursor:pointer;" title="Clic para editar">${cellContent}</td>`;
+      } else {
+        html+=`<td class="${frozenCls}">${cellContent}</td>`;
+      }
+    });
+    html+=`</tr>`;
+  });
+  html+=`</tbody></table>`;
+  document.getElementById('cf-table-wrap').innerHTML=html;
+  renderCFActiveBar();
+  applyFrozenPositions();
+}
 
-            document.getElementById('file-name').innerText = "⏳ Procesando archivo...";
+function applyFrozenPositions(){
+  applyFrozenToTable('cf-main-table', cfFrozenCols, cfEditMode);
+}
+function applyFrozenToTable(tableId, frozenSet, hasEditCol){
+  if(!frozenSet||!frozenSet.size)return;
+  const table=document.getElementById(tableId);
+  if(!table)return;
+  const frozenThs=[...table.querySelectorAll('th.cf-frozen-th')];
+  let leftOff=hasEditCol?30:0;
+  frozenThs.forEach(th=>{
+    th.style.left=leftOff+'px';
+    th.style.position='sticky';
+    const col=th.dataset.frozenCol;
+    // Set td backgrounds based on row type, inline so they survive nth-child
+    table.querySelectorAll(`td[data-frozen-col="${col}"]`).forEach(td=>{
+      td.style.left=leftOff+'px';
+      td.style.position='sticky';
+      const tr=td.closest('tr');
+      if(tr&&tr.classList.contains('cf-conflict-row'))td.style.background='#fee2e2';
+      else if(tr&&[...tr.children].indexOf(td)%2===0)td.style.background='#fafafa';
+      else td.style.background='#fff';
+    });
+    leftOff+=th.offsetWidth||120;
+  });
+}
 
-            Papa.parse(file, {
-                header: true,
-                skipEmptyLines: true,
-                complete: function(results) {
-                    processData(results.data);
-                    
-                    let now = new Date();
-                    let timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    document.getElementById('hora-carga').innerText = "| Actualizado: " + timeString;
-                    document.getElementById('file-name').innerText = "✅ Archivo cargado con éxito: " + file.name;
-                }
-            });
-        }
+function toggleCFFreeze(col,event){
+  event.stopPropagation();
+  if(cfFrozenCols.has(col))cfFrozenCols.delete(col);
+  else cfFrozenCols.add(col);
+  renderCFTable();
+  showToast(cfFrozenCols.has(col)?`📌 "${col}" anclada`:`📌 "${col}" desanclada`);
+}
 
-        function processData(data) {
-            let processed = {};
-            let estadosSet = new Set();
+function toggleCFPopup(ci,event){
+  event.stopPropagation();
+  // close others
+  document.querySelectorAll('.cf-popup').forEach(p=>{if(p.id!==`cf-popup-${ci}`)p.style.display='none';});
+  const popup=document.getElementById(`cf-popup-${ci}`);
+  if(popup.style.display!=='none'){popup.style.display='none';return;}
+  const col=cfColumns[ci];
+  const uniqueVals=[...new Set(cfAllRows.map(r=>r[col]).filter(v=>v!==undefined))].sort();
+  const active=cfFilters[ci]||new Set(uniqueVals);
+  let html=`<div class="cf-sort-btns"><button onclick="sortCFTable('${escAttr(col)}',1);closeCFPopup(${ci});event.stopPropagation()">▲ A → Z</button><button onclick="sortCFTable('${escAttr(col)}',-1);closeCFPopup(${ci});event.stopPropagation()">▼ Z → A</button><button onclick="sortCFTable(null,1);closeCFPopup(${ci});event.stopPropagation()">✕ Sin orden</button></div>
+<input type="text" placeholder="Buscar..." oninput="filterCFPopupSearch(${ci},this.value)">
+<div class="cf-popup-actions"><button onclick="cfSelectAll(${ci});event.stopPropagation()">Todos</button><button onclick="cfSelectNone(${ci});event.stopPropagation()">Ninguno</button></div>
+<div class="cf-popup-list" id="cf-list-${ci}">`;
+  uniqueVals.forEach(v=>{html+=`<label onclick="event.stopPropagation()"><input type="checkbox" value="${escH(v)}" ${active.has(v)?'checked':''}> ${escH(v)||'(vacío)'}</label>`;});
+  html+=`</div><div class="cf-popup-apply"><button class="cf-btn-apply" onclick="applyCFFilter(${ci});event.stopPropagation()">Aplicar</button><button class="cf-btn-cancel" onclick="closeCFPopup(${ci});event.stopPropagation()">Cancelar</button></div>`;
+  popup.innerHTML=html;popup.style.display='block';
+  // focus search
+  popup.querySelector('input[type=text]').focus();
+}
+function filterCFPopupSearch(ci,q){document.querySelectorAll(`#cf-list-${ci} label`).forEach(l=>{l.style.display=l.innerText.toLowerCase().includes(q.toLowerCase())?'':'none';});}
+function cfSelectAll(ci){document.querySelectorAll(`#cf-list-${ci} input`).forEach(cb=>cb.checked=true);}
+function cfSelectNone(ci){document.querySelectorAll(`#cf-list-${ci} input`).forEach(cb=>cb.checked=false);}
+function applyCFFilter(ci){
+  const checked=new Set([...document.querySelectorAll(`#cf-list-${ci} input:checked`)].map(cb=>cb.value));
+  const allVals=[...document.querySelectorAll(`#cf-list-${ci} input`)].map(cb=>cb.value);
+  if(checked.size===allVals.length)delete cfFilters[ci];else cfFilters[ci]=checked;
+  closeCFPopup(ci);renderCFTable();
+}
+function closeCFPopup(ci){const p=document.getElementById(`cf-popup-${ci}`);if(p)p.style.display='none';}
+function renderCFActiveBar(){
+  const bar=document.getElementById('cf-active-filters');
+  const entries=Object.entries(cfFilters).filter(([,v])=>v&&v.size>0);
+  if(!entries.length){bar.style.display='none';return;}
+  bar.style.display='flex';
+  let html=`<span style="color:#555;font-size:10px">Filtros activos:</span>`;
+  entries.forEach(([ci,vals])=>{html+=`<span class="cf-chip">${escH(cfColumns[ci])}: ${[...vals].map(v=>escH(v)||'(vacío)').join(', ')}<button class="cf-chip-remove" onclick="removeCFFilter(${ci})">×</button></span>`;});
+  html+=`<button style="background:none;border:none;color:#ef4444;font-size:10px;cursor:pointer;font-weight:700;font-family:inherit" onclick="clearAllCFFilters()">✕ Limpiar</button>`;
+  bar.innerHTML=html;
+}
+function removeCFFilter(ci){delete cfFilters[ci];renderCFTable();}
+function clearAllCFFilters(){cfFilters={};renderCFTable();}
+function sortCFTable(col,dir){cfSortCol=col;cfSortDir=dir;renderCFTable();}
 
-            data.forEach(row => {
-                let commerce = (getKey(row, 'Commerce') || '').trim();
-                let patente = (getKey(row, 'Patente') || '').trim();
-                let region = (getKey(row, 'Region') || 'Sin Región').trim();
-                let estado = (getKey(row, 'Estado') || 'Sin Estado').trim();
-                let parentOrder = (getKey(row, 'ParentOrder') || '').trim();
+// ═══════════════════════════════════════════════════════════
+//  CONFLICT TABLE — EXPORT CSV
+// ═══════════════════════════════════════════════════════════
+function exportCFTableCSV(){
+  const visibleRows=cfAllRows.filter((_,ri)=>{
+    return !Object.entries(cfFilters).some(([ci,vals])=>vals.size>0&&!vals.has(cfAllRows[ri][cfColumns[ci]]));
+  });
+  const cols=cfColumns.filter(c=>c!=='_isConflict');
+  const escCSV=v=>{ const s=String(v??''); return (s.includes(',')||s.includes('"')||s.includes('\n'))?`"${s.replace(/"/g,'""')}"`:s; };
+  let csv=cols.map(escCSV).join(',')+'\n';
+  visibleRows.forEach(row=>{ csv+=cols.map(c=>escCSV(row[c]??'')).join(',')+'\n'; });
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`conflictos_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  showToast('⬇️ CSV descargado');
+}
 
-                if (commerce.toLowerCase() !== 'ikea' || patente === '') return;
+function buildCFPlainHTML(){
+  const visibleRows=cfAllRows.filter((_,ri)=>{
+    return !Object.entries(cfFilters).some(([ci,vals])=>vals.size>0&&!vals.has(cfAllRows[ri][cfColumns[ci]]));
+  });
+  const cols=cfColumns.filter(c=>c!=='_isConflict');
+  const tdStyle='border:1px solid #000;padding:3px 7px;font-size:11px;font-family:Arial,sans-serif;vertical-align:middle;white-space:nowrap;';
+  const thStyle=tdStyle+'font-weight:bold;background:#fff;';
+  let html=`<table style="border-collapse:collapse;"><thead><tr>`;
+  cols.forEach(c=>{html+=`<th style="${thStyle}">${escH(c)}</th>`;});
+  html+=`</tr></thead><tbody>`;
+  visibleRows.forEach(row=>{
+    html+=`<tr>`;
+    cols.forEach(c=>{ html+=`<td style="${tdStyle}">${escH(row[c]??'')}</td>`; });
+    html+=`</tr>`;
+  });
+  html+=`</tbody></table>`;
+  return html;
+}
 
-                estadosSet.add(estado);
+async function copiarTablaConflictos(){
+  const html=buildCFPlainHTML();
+  try{
+    await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([html.replace(/<[^>]+>/g,'')],{type:'text/plain'})})]);
+    showToast('📋 Tabla copiada — pegá en Excel o Word');
+  }catch(e){
+    // fallback: copy plain text via textarea
+    const visibleRows=cfAllRows.filter((_,ri)=>!Object.entries(cfFilters).some(([ci,vals])=>vals.size>0&&!vals.has(cfAllRows[ri][cfColumns[ci]])));
+    const cols=cfColumns.filter(c=>c!=='_isConflict');
+    const txt=cols.join('\t')+'\n'+visibleRows.map(r=>cols.map(c=>r[c]??'').join('\t')).join('\n');
+    copiarTexto(txt,'📋 Tabla copiada como texto');
+  }
+}
 
-                if (!processed[region]) {
-                    processed[region] = { orders: new Set(), estados: {}, patentes: {} };
-                }
-                
-                processed[region].orders.add(parentOrder);
-                if (!processed[region].estados[estado]) processed[region].estados[estado] = new Set();
-                processed[region].estados[estado].add(parentOrder);
+// ═══════════════════════════════════════════════════════════
+//  CONFLICT TABLE — EDIT MODE
+// ═══════════════════════════════════════════════════════════
+let cfEditMode=false;
+function toggleCFEditMode(){
+  cfEditMode=!cfEditMode;
+  const btn=document.getElementById('cf-edit-btn');
+  const hint=document.getElementById('cf-edit-hint');
+  btn.style.background=cfEditMode?'#0051BA':'#e8f0fb';
+  btn.style.color=cfEditMode?'#FFDA1A':'#003A8C';
+  btn.innerText=cfEditMode?'✅ Salir edición':'✏️ Modo edición';
+  hint.style.display=cfEditMode?'inline':'none';
+  renderCFTable();
+}
+function deleteCFRow(ri){
+  const row=cfAllRows[ri];
+  const rowPO=row['ParentOrder'], rowPat=row['Patente'], rowEst=row['Estado'];
+  // Remove matching rows from allOriginalRows
+  const before=allOriginalRows.length;
+  allOriginalRows=allOriginalRows.filter(rawRow=>{
+    const rPO=(getKey(rawRow,'ParentOrder')||'').trim();
+    const rPat=(getKey(rawRow,'Patente')||'').trim();
+    const rEst=(getKey(rawRow,'Estado')||'').trim();
+    return !(rPO===rowPO&&rPat===rowPat&&rEst===rowEst);
+  });
+  const removed=before-allOriginalRows.length;
+  cfAllRows.splice(ri,1);
+  processData(allOriginalRows);
+  openConflictModal(cfCurrentPatente,null);
+  showToast(`🗑️ ${removed} fila(s) eliminada(s) — tablas actualizadas`);
+}
+function startCFEdit(ri,col,cell){
+  if(!cfEditMode)return;
+  const cur=cfAllRows[ri][col]??'';
+  const input=document.createElement('input');
+  input.type='text';input.value=cur;
+  input.style.cssText='width:100%;box-sizing:border-box;border:1.5px solid #FFDA1A;border-radius:3px;padding:1px 4px;font-size:10.5px;font-family:inherit;background:#fffef0;outline:none;font-weight:600;';
+  cell.innerHTML='';cell.appendChild(input);input.focus();input.select();
+  let saved=false;
+  const save=()=>{
+    if(saved)return;saved=true;
+    const newVal=input.value.trim();
+    const oldVal=cur;
+    if(newVal===oldVal){renderCFTable();return;}
+    // Snapshot row identity BEFORE mutation
+    const rowPO=cfAllRows[ri]['ParentOrder'];
+    const rowPatente=cfAllRows[ri]['Patente'];
+    const rowEstado=cfAllRows[ri]['Estado'];
+    // Update cfAllRows
+    cfAllRows[ri][col]=newVal;
+    // Sync to allOriginalRows by matching PO + Patente + Estado + old col value
+    allOriginalRows.forEach(rawRow=>{
+      const rPO=(getKey(rawRow,'ParentOrder')||'').trim();
+      const rPat=(getKey(rawRow,'Patente')||'').trim();
+      const rEst=(getKey(rawRow,'Estado')||'').trim();
+      if(rPO===rowPO&&rPat===rowPatente&&rEst===rowEstado){
+        const rKey=Object.keys(rawRow).find(k=>k.trim().toLowerCase()===col.trim().toLowerCase());
+        if(rKey)rawRow[rKey]=newVal;
+      }
+    });
+    processData(allOriginalRows);
+    openConflictModal(cfCurrentPatente,null);
+    showToast('✅ Guardado — tablas actualizadas');
+  };
+  input.addEventListener('blur',save);
+  input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();input.blur();}if(e.key==='Escape'){saved=true;renderCFTable();}});
+}
 
-                if (!processed[region].patentes[patente]) {
-                    processed[region].patentes[patente] = { orders: new Set(), estados: {} };
-                }
+// Close popups on outside click — but DON'T close if click was inside a popup
+document.addEventListener('click',e=>{if(!e.target.closest('.cf-popup')&&!e.target.closest('.cf-th-filter')&&!e.target.closest('.cf-pin-btn'))document.querySelectorAll('.cf-popup').forEach(p=>p.style.display='none');});
 
-                processed[region].patentes[patente].orders.add(parentOrder);
-                if (!processed[region].patentes[patente].estados[estado]) processed[region].patentes[patente].estados[estado] = new Set();
-                processed[region].patentes[patente].estados[estado].add(parentOrder);
-            });
+// ═══════════════════════════════════════════════════════════
+//  PATENTE DETAIL MODAL
+// ═══════════════════════════════════════════════════════════
+function openPatenteModal(patente,region,event){
+  if(event)event.stopPropagation();
+  // Gather all raw rows for this patente across all rawRowsByPO
+  const allRaw=Object.values(rawRowsByPO).flat();
+  const rows=allRaw.filter(r=>{
+    const rPat=(r['Patente']||r[Object.keys(r).find(k=>k.trim().toLowerCase()==='patente')]||'').trim();
+    return rPat===patente;
+  });
+  if(!rows.length){showToast('⚠️ Sin filas para esta patente');return;}
+  document.getElementById('pt-modal-title').innerText=`Detalle — Patente: ${patente}`;
+  document.getElementById('pt-modal-subtitle').innerText=`${rows.length} fila(s) · ${region||''}`;
+  const knownOrder=['Estado','Patente','Region','ParentOrder'];
+  const allKeys=[...new Set(rows.flatMap(r=>Object.keys(r).map(k=>k.trim())))];
+  const extras=allKeys.filter(k=>!knownOrder.map(x=>x.toLowerCase()).includes(k.toLowerCase()));
+  ptColumns=[...knownOrder.filter(k=>allKeys.map(x=>x.toLowerCase()).includes(k.toLowerCase())),...extras];
+  ptFilters={};ptFrozenCols=new Set();ptSortCol=null;ptSortDir=1;
+  ptAllRows=rows.map(r=>{
+    const obj={};
+    ptColumns.forEach(col=>{
+      const rKey=Object.keys(r).find(k=>k.trim().toLowerCase()===col.toLowerCase());
+      obj[col]=rKey?(r[rKey]??'').toString().trim():'';
+    });
+    return obj;
+  });
+  renderPTTable();
+  document.getElementById('pt-active-filters').style.display='none';
+  document.getElementById('modal-patente').classList.add('open');
+}
 
-            uniqueEstados = Array.from(estadosSet).sort();
-            globalData = processed;
+function renderPTTable(){
+  const isFrozen=c=>ptFrozenCols.has(c);
+  let displayRows=[...ptAllRows.map((r,i)=>({...r,_origIdx:i}))];
+  if(ptSortCol){displayRows.sort((a,b)=>{const av=String(a[ptSortCol]||'').toLowerCase(),bv=String(b[ptSortCol]||'').toLowerCase();return av<bv?-ptSortDir:av>bv?ptSortDir:0;});}
 
-            renderAll();
-        }
+  let html=`<table class="cf-table" id="pt-main-table"><thead><tr>`;
+  ptColumns.forEach((col,ci)=>{
+    const isActive=ptFilters[ci]&&ptFilters[ci].size>0;
+    const frozen=isFrozen(col);
+    const popDir=ci===0?'pop-right':'pop-left';
+    const pinBtn=`<button class="cf-pin-btn${frozen?' cf-pin-active':''}" onclick="togglePTFreeze('${escAttr(col)}',event)" title="${frozen?'Desanclar':'Anclar'}">📌</button>`;
+    const frozenCls=frozen?`cf-frozen-th" data-frozen-col="${escH(col)}`:'';
+    html+=`<th class="${frozenCls}" data-col="${escH(col)}"><div class="th-inner">${escH(col)}${pinBtn}<div class="cf-popup-wrap"><button class="cf-th-filter${isActive?' active':''}" onclick="togglePTPopup(${ci},event)" title="Filtrar">▼</button><div class="cf-popup ${popDir}" id="pt-popup-${ci}" style="display:none"></div></div></div></th>`;
+  });
+  html+=`</tr></thead><tbody>`;
+  displayRows.forEach((row)=>{
+    const hidden=Object.entries(ptFilters).some(([ci,vals])=>vals.size>0&&!vals.has(row[ptColumns[ci]]));
+    html+=`<tr class="${hidden?'cf-hidden':''}">`;
+    ptColumns.forEach(col=>{
+      const frozen=isFrozen(col);
+      const frozenCls=frozen?`cf-frozen-td" data-frozen-col="${escH(col)}`:'';
+      let cell='';
+      if(col==='Estado')cell=estadoPill(row[col]);
+      else if(col==='ParentOrder')cell=`<span style="font-family:monospace;font-size:10px">${escH(row[col])}</span>`;
+      else cell=escH(row[col]);
+      html+=`<td class="${frozenCls}">${cell}</td>`;
+    });
+    html+=`</tr>`;
+  });
+  html+=`</tbody></table>`;
+  document.getElementById('pt-table-wrap').innerHTML=html;
+  renderPTActiveBar();
+  applyPTFrozenPositions();
+}
 
-        function renderAll() {
-            document.getElementById('card-resumen').style.display = 'block';
-            document.getElementById('card-numeros').style.display = 'block';
-            document.getElementById('card-porcentajes').style.display = 'block';
-            document.getElementById('card-graficos').style.display = 'block';
+function applyPTFrozenPositions(){
+  applyFrozenToTable('pt-main-table', ptFrozenCols, false);
+}
 
-            generarResumen();
-            document.getElementById('tabla-numeros').innerHTML = buildTableHTML(globalData, false);
-            document.getElementById('tabla-porcentajes').innerHTML = buildTableHTML(globalData, true);
-            
-            initChartSelector();
-        }
+function togglePTFreeze(col,event){
+  event.stopPropagation();
+  if(ptFrozenCols.has(col))ptFrozenCols.delete(col);else ptFrozenCols.add(col);
+  renderPTTable();
+  showToast(ptFrozenCols.has(col)?`📌 "${col}" anclada`:`📌 "${col}" desanclada`);
+}
 
-        // --- SECCIÓN DE RESUMEN ---
-        function generarResumen() {
-            let resumen = "";
-            let regions = Object.keys(globalData).sort();
+function togglePTPopup(ci,event){
+  event.stopPropagation();
+  document.querySelectorAll('.cf-popup').forEach(p=>{if(p.id!==`pt-popup-${ci}`)p.style.display='none';});
+  const popup=document.getElementById(`pt-popup-${ci}`);
+  if(popup.style.display!=='none'){popup.style.display='none';return;}
+  const col=ptColumns[ci];
+  const uniqueVals=[...new Set(ptAllRows.map(r=>r[col]).filter(v=>v!==undefined))].sort();
+  const active=ptFilters[ci]||new Set(uniqueVals);
+  let html=`<div class="cf-sort-btns"><button onclick="ptAllRows.sort((a,b)=>String(a['${escAttr(col)}']||'').localeCompare(String(b['${escAttr(col)}']||'')));ptSortCol='${escAttr(col)}';ptSortDir=1;closePTPopup(${ci});renderPTTable();event.stopPropagation()">▲ A → Z</button><button onclick="ptAllRows.sort((a,b)=>String(b['${escAttr(col)}']||'').localeCompare(String(a['${escAttr(col)}']||'')));ptSortCol='${escAttr(col)}';ptSortDir=-1;closePTPopup(${ci});renderPTTable();event.stopPropagation()">▼ Z → A</button><button onclick="ptSortCol=null;closePTPopup(${ci});renderPTTable();event.stopPropagation()">✕ Sin orden</button></div>
+<input type="text" placeholder="Buscar..." oninput="filterPTPopupSearch(${ci},this.value)">
+<div class="cf-popup-actions"><button onclick="ptSelAll(${ci});event.stopPropagation()">Todos</button><button onclick="ptSelNone(${ci});event.stopPropagation()">Ninguno</button></div>
+<div class="cf-popup-list" id="pt-list-${ci}">`;
+  uniqueVals.forEach(v=>{html+=`<label onclick="event.stopPropagation()"><input type="checkbox" value="${escH(v)}" ${active.has(v)?'checked':''}> ${escH(v)||'(vacío)'}</label>`;});
+  html+=`</div><div class="cf-popup-apply"><button class="cf-btn-apply" onclick="applyPTFilter(${ci});event.stopPropagation()">Aplicar</button><button class="cf-btn-cancel" onclick="closePTPopup(${ci});event.stopPropagation()">Cancelar</button></div>`;
+  popup.innerHTML=html;popup.style.display='block';
+  popup.querySelector('input[type=text]').focus();
+}
+function filterPTPopupSearch(ci,q){document.querySelectorAll(`#pt-list-${ci} label`).forEach(l=>{l.style.display=l.innerText.toLowerCase().includes(q.toLowerCase())?'':'none';});}
+function ptSelAll(ci){document.querySelectorAll(`#pt-list-${ci} input`).forEach(cb=>cb.checked=true);}
+function ptSelNone(ci){document.querySelectorAll(`#pt-list-${ci} input`).forEach(cb=>cb.checked=false);}
+function applyPTFilter(ci){
+  const checked=new Set([...document.querySelectorAll(`#pt-list-${ci} input:checked`)].map(cb=>cb.value));
+  const allVals=[...document.querySelectorAll(`#pt-list-${ci} input`)].map(cb=>cb.value);
+  if(checked.size===allVals.length)delete ptFilters[ci];else ptFilters[ci]=checked;
+  closePTPopup(ci);renderPTTable();
+}
+function closePTPopup(ci){const p=document.getElementById(`pt-popup-${ci}`);if(p)p.style.display='none';}
+function renderPTActiveBar(){
+  const bar=document.getElementById('pt-active-filters');
+  const entries=Object.entries(ptFilters).filter(([,v])=>v&&v.size>0);
+  if(!entries.length){bar.style.display='none';return;}
+  bar.style.display='flex';
+  let html=`<span style="color:#555;font-size:10px">Filtros activos:</span>`;
+  entries.forEach(([ci,vals])=>{html+=`<span class="cf-chip">${escH(ptColumns[ci])}: ${[...vals].map(v=>escH(v)||'(vacío)').join(', ')}<button class="cf-chip-remove" onclick="removePTFilter(${ci})">×</button></span>`;});
+  html+=`<button style="background:none;border:none;color:#ef4444;font-size:10px;cursor:pointer;font-weight:700;font-family:inherit" onclick="clearAllPTFilters()">✕ Limpiar</button>`;
+  bar.innerHTML=html;
+}
+function removePTFilter(ci){delete ptFilters[ci];renderPTTable();}
+function clearAllPTFilters(){ptFilters={};renderPTTable();}
 
-            regions.forEach(region => {
-                let rData = globalData[region];
-                let upperReg = region.toUpperCase();
-                
-                // Filtro para mostrar SOLO Región Metropolitana y Valparaíso
-                if (upperReg.includes('METROPOLITANA') || upperReg.includes('VALPARAISO') || upperReg.includes('VALPARAÍSO')) {
-                    let totalRegion = rData.orders.size;
-                    let patentesCount = Object.keys(rData.patentes).length;
+function getPTVisibleRows(){
+  return ptAllRows.filter((_,ri)=>!Object.entries(ptFilters).some(([ci,vals])=>vals.size>0&&!vals.has(ptAllRows[ri][ptColumns[ci]])));
+}
+function exportPTTableCSV(){
+  const visibleRows=getPTVisibleRows();
+  const escCSV=v=>{const s=String(v??'');return(s.includes(',')||s.includes('"')||s.includes('\n'))?`"${s.replace(/"/g,'""')}"`:`${s}`;};
+  let csv=ptColumns.map(escCSV).join(',')+'\n';
+  visibleRows.forEach(row=>{csv+=ptColumns.map(c=>escCSV(row[c]??'')).join(',')+'\n';});
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`patente_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  showToast('⬇️ CSV descargado');
+}
+async function copiarTablaPT(){
+  const visibleRows=getPTVisibleRows();
+  const tdStyle='border:1px solid #000;padding:3px 7px;font-size:11px;font-family:Arial,sans-serif;vertical-align:middle;white-space:nowrap;';
+  const thStyle=tdStyle+'font-weight:bold;';
+  let html=`<table style="border-collapse:collapse;"><thead><tr>${ptColumns.map(c=>`<th style="${thStyle}">${escH(c)}</th>`).join('')}</tr></thead><tbody>`;
+  visibleRows.forEach(row=>{html+=`<tr>${ptColumns.map(c=>`<td style="${tdStyle}">${escH(row[c]??'')}</td>`).join('')}</tr>`;});
+  html+='</tbody></table>';
+  try{
+    await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([ptColumns.join('\t')+'\n'+visibleRows.map(r=>ptColumns.map(c=>r[c]??'').join('\t')).join('\n')],{type:'text/plain'})})]);
+    showToast('📋 Tabla copiada — pegá en Excel o Word');
+  }catch(e){
+    const txt=ptColumns.join('\t')+'\n'+visibleRows.map(r=>ptColumns.map(c=>r[c]??'').join('\t')).join('\n');
+    copiarTexto(txt,'📋 Tabla copiada como texto');
+  }
+}
 
-                    resumen += `📍 [${region.toUpperCase()}]\n`;
-                    resumen += `   Total: ${totalRegion} órdenes asignadas a ${patentesCount} vehículos.\n`;
-                    
-                    let estadosStr = [];
-                    uniqueEstados.forEach(e => {
-                        let count = rData.estados[e] ? rData.estados[e].size : 0;
-                        if (count > 0) {
-                            let pct = ((count / totalRegion) * 100).toFixed(1);
-                            estadosStr.push(`   - ${e}: ${count} (${pct}%)`);
-                        }
-                    });
-                    
-                    if(estadosStr.length > 0) {
-                        resumen += estadosStr.join("\n") + "\n";
-                    }
-                    resumen += "\n";
-                }
-            });
+// ═══════════════════════════════════════════════════════════
+//  CHART
+// ═══════════════════════════════════════════════════════════
+function initChartSelector(){const sel=document.getElementById('region-select');sel.innerHTML='<option value="">Selecciona una Región...</option>';Object.keys(globalData).sort().forEach(r=>sel.innerHTML+=`<option value="${escH(r)}">${escH(r)}</option>`);}
+function getColorForEstado(e){const l=e.toLowerCase();if(l.includes('terminado'))return '#22c55e';if(l.includes('en ruta'))return '#ef4444';if(l.includes('planificado'))return '#f97316';if(l.includes('pendiente'))return '#FFDA1A';return '#0051BA';}
+const whiteBgPlugin={id:'whiteBg',beforeDraw(c){const x=c.canvas.getContext('2d');x.save();x.globalCompositeOperation='destination-over';x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.restore();}};
+function updateChart(){
+  const region=document.getElementById('region-select').value;
+  const bc=document.getElementById('btn-copy-patentes'),bd=document.getElementById('btn-dl-chart');
+  if(!region){bc.style.display=bd.style.display='none';if(myChart){myChart.destroy();myChart=null;}return;}
+  bc.style.display=bd.style.display='inline-flex';
+  const ctx=document.getElementById('avanceChart').getContext('2d');
+  if(myChart)myChart.destroy();
+  const pData=globalData[region].patentes,pNames=Object.keys(pData).sort();
+  const map={};
+  uniqueEstados.forEach(est=>{const n=est.trim().toLowerCase(),lbl=(n==='planificado'||n==='planificado en simpliroute')?'Planificado':est;if(!map[lbl])map[lbl]=[];map[lbl].push(est);});
+  const datasets=Object.keys(map).sort().map(lbl=>({label:lbl,backgroundColor:getColorForEstado(lbl),borderWidth:0,data:pNames.map(p=>{let s=0;map[lbl].forEach(o=>{if(pData[p].estados[o])s+=pData[p].estados[o].size;});return s;})}));
+  myChart=new Chart(ctx,{type:'bar',plugins:[whiteBgPlugin],data:{labels:pNames,datasets},options:{responsive:true,maintainAspectRatio:false,onClick(e,els,c){if(els.length>0)copiarTexto(c.data.labels[els[0].index],'✅ Patente copiada');},plugins:{tooltip:{mode:'index',intersect:false},legend:{position:'bottom',labels:{color:'#333',font:{size:11},padding:13}}},scales:{x:{stacked:true,ticks:{color:'#333',font:{size:10}},grid:{color:'#eee'},title:{display:true,text:'Patentes',color:'#666'}},y:{stacked:true,beginAtZero:true,ticks:{color:'#333',font:{size:10}},grid:{color:'#eee'},title:{display:true,text:'Recuento',color:'#666'}}}}});
+}
+function copiarPatentesRegion(){const r=document.getElementById('region-select').value;if(!r||!globalData[r])return;copiarTexto(Object.keys(globalData[r].patentes).sort().join('\n'),'✅ Patentes copiadas');}
 
-            // Si no encuentra nada (por si el CSV no tiene esas regiones)
-            if (resumen === "") {
-                resumen = "No se encontraron datos para la Región Metropolitana ni Región de Valparaíso en este archivo.";
-            }
+// ═══════════════════════════════════════════════════════════
+//  EXPORT PREVIEW
+// ═══════════════════════════════════════════════════════════
+function abrirExportModal(type){
+  exportType=type;exportCanvas=null;
+  document.getElementById('exp-btn-copy').disabled=true;
+  document.getElementById('exp-btn-dl').disabled=true;
+  const titles={numeros:'Tabla — Números',porcentajes:'Tabla — Porcentajes',grafico:'Gráfico de Avance',resumen:'Resumen Ejecutivo'};
+  document.getElementById('exp-title').innerText=`Vista Previa — ${titles[type]||type}`;
+  document.getElementById('exp-preview-wrap').innerHTML=`<div class="exp-preview-placeholder"><span style="font-size:32px">🖼</span><span>Presioná <b>Actualizar vista</b></span></div>`;
+  const panel=document.getElementById('exp-panel');
+  const allRegions=Object.keys(globalData).sort();
+  if(type==='grafico'){
+    const cr=document.getElementById('region-select').value;
+    panel.innerHTML=`<div class="exp-panel-section"><h4>ℹ️ Región</h4><p style="font-size:11px;color:#555;margin:0">Se exportará:<br><b>${escH(cr||'(ninguna seleccionada)')}</b></p></div>`;
+  } else if(type==='resumen'){
+    panel.innerHTML=`<div class="exp-panel-section"><h4>ℹ️ Info</h4><p style="font-size:11px;color:#555;margin:0">Exporta el resumen ejecutivo de RM y Valparaíso.</p></div>`;
+  } else {
+    let html=`<div class="exp-panel-section"><h4>🗺 Regiones</h4>`;
+    html+=`<div class="exp-sel-btns"><button onclick="expSelAll(true)">✓ Todas</button><button onclick="expSelAll(false)">✗ Ninguna</button></div>`;
+    html+=`<div class="exp-check-list" id="exp-region-list">`;
+    allRegions.forEach(r=>{html+=`<label><input type="checkbox" class="exp-region-cb" value="${escH(r)}" checked> ${escH(r)}</label>`;});
+    html+=`</div></div>`;
+    html+=`<div class="exp-panel-section"><h4>📋 Vista</h4><div class="exp-check-list">
+      <label><input type="checkbox" id="exp-expanded"> Expandir patentes</label>
+      <label><input type="radio" name="exp-tt" value="numeros" ${type==='numeros'?'checked':''}> Números</label>
+      <label><input type="radio" name="exp-tt" value="porcentajes" ${type==='porcentajes'?'checked':''}> Porcentajes</label>
+    </div></div>`;
+    panel.innerHTML=html;
+  }
+  document.getElementById('modal-export').classList.add('open');
+}
 
-            document.getElementById('texto-resumen').innerText = resumen.trim();
-        }
+function expSelAll(checked){document.querySelectorAll('.exp-region-cb').forEach(cb=>cb.checked=checked);}
 
-        function copiarResumen() {
-            let texto = document.getElementById('texto-resumen').innerText;
-            copiarAlPortapapeles(texto, "✅ ¡Resumen copiado!");
-        }
+async function actualizarPreview(){
+  const wrap=document.getElementById('exp-preview-wrap');
+  wrap.innerHTML=`<div class="exp-loading">⏳ Generando...</div>`;
+  document.getElementById('exp-btn-copy').disabled=true;
+  document.getElementById('exp-btn-dl').disabled=true;
+  exportCanvas=null;
+  try{
+    exportCanvas=await generarCanvas();
+    if(!exportCanvas){wrap.innerHTML=`<div class="exp-preview-placeholder"><span style="font-size:28px">⚠️</span><span>No hay datos para mostrar</span></div>`;return;}
+    const img=document.createElement('img');
+    img.src=exportCanvas.toDataURL('image/png');
+    img.style.cssText='max-width:100%;height:auto;border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,.2)';
+    wrap.innerHTML='';wrap.appendChild(img);
+    document.getElementById('exp-btn-copy').disabled=false;
+    document.getElementById('exp-btn-dl').disabled=false;
+  }catch(err){wrap.innerHTML=`<div class="exp-preview-placeholder"><span style="font-size:28px">❌</span><span>${err.message||'Error al generar'}</span></div>`;console.error(err);}
+}
 
-        // --- SECCIÓN DE TABLAS ---
-        function buildTableHTML(data, isPercent) {
-            let html = `<table><thead><tr><th>Fila (Región / Patente)</th>`;
-            uniqueEstados.forEach(e => html += `<th>${e}</th>`);
-            html += `<th>Total General</th></tr></thead><tbody>`;
+async function generarCanvas(){
+  if(exportType==='grafico'){
+    const src=document.getElementById('avanceChart');if(!myChart)return null;
+    const tmp=Object.assign(document.createElement('canvas'),{width:src.width,height:src.height});
+    const tc=tmp.getContext('2d');tc.fillStyle='#fff';tc.fillRect(0,0,tmp.width,tmp.height);tc.drawImage(src,0,0);return tmp;
+  }
+  if(exportType==='resumen'){
+    return await html2canvas(document.getElementById('texto-resumen').parentElement,{backgroundColor:'#fff',scale:2,useCORS:true,logging:false});
+  }
+  const isPercent=document.querySelector('input[name="exp-tt"]:checked')?.value==='porcentajes'||exportType==='porcentajes';
+  const selRegions=[...document.querySelectorAll('.exp-region-cb:checked')].map(cb=>cb.value);
+  const expanded=!!document.getElementById('exp-expanded')?.checked;
+  if(!selRegions.length)return null;
+  const tableHTML=buildTableHTML(isPercent,selRegions,expanded,true);
+  const wrapper=document.createElement('div');
+  wrapper.style.cssText='background:#fff;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;width:max-content;min-width:500px;';
+  const titleEl=document.createElement('div');
+  titleEl.style.cssText='background:#0051BA;color:#FFDA1A;padding:9px 13px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:6px 6px 0 0;';
+  titleEl.innerText=`📊 Avance en Ruta — ${isPercent?'Porcentajes':'Números'} · ${selRegions.join(', ')}`;
+  const tableDiv=document.createElement('div');
+  tableDiv.style.cssText='border:1px solid #d0d7de;border-top:none;border-radius:0 0 6px 6px;overflow:hidden;';
+  tableDiv.innerHTML=tableHTML;
+  wrapper.appendChild(titleEl);wrapper.appendChild(tableDiv);
+  const offscreen=document.getElementById('offscreen-render');
+  offscreen.innerHTML='';offscreen.appendChild(wrapper);
+  const canvas=await html2canvas(wrapper,{backgroundColor:'#fff',scale:2,useCORS:true,logging:false,onclone(doc){doc.querySelectorAll('.conflict-btn').forEach(b=>b.style.display='none');}});
+  offscreen.innerHTML='';return canvas;
+}
 
-            let colTotals = {};
-            uniqueEstados.forEach(e => colTotals[e] = new Set());
-            let grandTotal = new Set();
+async function copiarImagenPortapapeles(){
+  if(!exportCanvas)return showToast('⚠️ Primero generá la vista previa');
+  exportCanvas.toBlob(async blob=>{
+    try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);showToast('📋 Imagen copiada al portapapeles');}
+    catch(e){showToast('❌ Permiso denegado — usá Descargar PNG');}
+  },'image/png');
+}
+function descargarImagenExport(){
+  if(!exportCanvas)return showToast('⚠️ Primero generá la vista previa');
+  const a=document.createElement('a');a.href=exportCanvas.toDataURL('image/png');a.download=`reporte_${exportType}_${new Date().toISOString().slice(0,10)}.png`;a.click();showToast('⬇️ Imagen descargada');
+}
 
-            let regions = Object.keys(data).sort();
+// ═══════════════════════════════════════════════════════════
+//  MODAL UTILS
+// ═══════════════════════════════════════════════════════════
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function closeModalOutside(e,id){if(e.target.id===id)closeModal(id);}
 
-            regions.forEach((region, rIdx) => {
-                let rData = data[region];
-                let rTotal = rData.orders.size;
+// ═══════════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════════
+function estadoPill(est){const e=est.toLowerCase();let c='e-other';if(e.includes('terminado'))c='e-terminado';else if(e.includes('en ruta'))c='e-en-ruta';else if(e.includes('planif'))c='e-planif';else if(e.includes('pendiente'))c='e-pendiente';return `<span class="estado-pill ${c}">${escH(est)}</span>`;}
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function escAttr(s){return String(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
+</script>
 
-                if (!isPercent) {
-                    uniqueEstados.forEach(e => {
-                        if(rData.estados[e]) {
-                            rData.estados[e].forEach(o => {
-                                colTotals[e].add(o);
-                                grandTotal.add(o);
-                            });
-                        }
-                    });
-                }
+// ═══════════════════════════════════════════════
+//  IKEA EXCEL-LIKE CELL SELECTION (universal)
+// ═══════════════════════════════════════════════
+(function() {
+  var _anchor = null, _active = null, _dragging = false;
 
-                let rowClassId = `row-${isPercent ? 'pct' : 'num'}-${rIdx}`;
-                html += `<tr class="region-row" onclick="toggleRows('${rowClassId}')">`;
-                html += `<td><span class="toggle-icon" id="icon-${rowClassId}">[+]</span> ${region}</td>`;
+  // ── inject glow div ──
+  var _glow = document.createElement('div');
+  _glow.className = 'ik-copy-glow';
+  _glow.id = 'ikCopyGlow';
+  _glow.textContent = '✓ Copiado';
+  document.body.appendChild(_glow);
+  var _glowT;
+  function flashGlow() {
+    _glow.classList.add('ik-glow-show');
+    clearTimeout(_glowT);
+    _glowT = setTimeout(function(){ _glow.classList.remove('ik-glow-show'); }, 1600);
+  }
 
-                uniqueEstados.forEach(e => {
-                    let val = rData.estados[e] ? rData.estados[e].size : 0;
-                    let display = '';
-                    if (val > 0) {
-                        display = isPercent ? ((val / rTotal) * 100).toFixed(1) + '%' : val;
-                    }
-                    html += `<td>${display}</td>`;
-                });
-                html += `<td><b>${rTotal > 0 ? (isPercent ? '100%' : rTotal) : ''}</b></td></tr>`;
+  // ── mark all td/th in standard tables as selectable ──
+  function markSelectableCells() {
+    document.querySelectorAll('tbody td, .ik-grid-table tbody td').forEach(function(td) {
+      td.classList.add('ik-sel-cell');
+    });
+  }
 
-                let patentes = Object.keys(rData.patentes).sort();
-                patentes.forEach(patente => {
-                    let pData = rData.patentes[patente];
-                    let pTotal = pData.orders.size;
+  // ── also watch for dynamically rendered tables ──
+  var _mo = new MutationObserver(function() { markSelectableCells(); });
+  _mo.observe(document.body, { childList: true, subtree: true });
+  markSelectableCells();
 
-                    html += `<tr class="patente-row ${rowClassId}" style="display: none;">`;
-                    html += `<td>${patente}</td>`;
+  // ── get row/col indices ──
+  function idx(td) {
+    var tr = td.parentElement;
+    var ri = Array.from(tr.parentElement.rows || tr.parentElement.children).indexOf(tr);
+    var ci = Array.from(tr.cells || tr.children).indexOf(td);
+    return { r: ri, c: ci };
+  }
 
-                    uniqueEstados.forEach(e => {
-                        let val = pData.estados[e] ? pData.estados[e].size : 0;
-                        let display = '';
-                        if (val > 0) {
-                            display = isPercent ? ((val / pTotal) * 100).toFixed(1) + '%' : val;
-                        }
-                        html += `<td>${display}</td>`;
-                    });
-                    html += `<td><b>${pTotal > 0 ? (isPercent ? '100%' : pTotal) : ''}</b></td></tr>`;
-                });
-            });
+  // ── clear all selection highlight ──
+  function clearSel() {
+    document.querySelectorAll('.ik-selected,.ik-anchor').forEach(function(el) {
+      el.classList.remove('ik-selected','ik-anchor');
+    });
+  }
 
-            html += `</tbody>`;
+  // ── select range between two cells (must be in same table) ──
+  function selectRange(a, b) {
+    if (!a || !b) return;
+    // find shared table
+    var tA = a.closest('table'), tB = b.closest('table');
+    if (!tA || tA !== tB) { clearSel(); if(a) { a.classList.add('ik-anchor'); } return; }
+    clearSel();
+    var ia = idx(a), ib = idx(b);
+    var r1 = Math.min(ia.r,ib.r), r2 = Math.max(ia.r,ib.r);
+    var c1 = Math.min(ia.c,ib.c), c2 = Math.max(ia.c,ib.c);
+    var tbody = a.closest('tbody') || a.closest('table');
+    Array.from(tbody.rows || tbody.querySelectorAll('tr')).slice(r1, r2+1).forEach(function(tr) {
+      Array.from(tr.cells).slice(c1, c2+1).forEach(function(td) {
+        td.classList.add('ik-selected');
+      });
+    });
+    a.classList.add('ik-anchor');
+  }
 
-            if (!isPercent) {
-                html += `<tfoot><tr><th>Total General Columnas</th>`;
-                uniqueEstados.forEach(e => {
-                    let colSize = colTotals[e].size;
-                    html += `<th>${colSize > 0 ? colSize : ''}</th>`;
-                });
-                html += `<th>${grandTotal.size > 0 ? grandTotal.size : ''}</th></tr></tfoot>`;
-            }
+  // ── get text from selected cells as TSV ──
+  function getSelText() {
+    var cells = Array.from(document.querySelectorAll('.ik-selected,.ik-anchor'));
+    if (!cells.length) return '';
+    var byRow = {};
+    cells.forEach(function(td) {
+      var i = idx(td);
+      if (!byRow[i.r]) byRow[i.r] = [];
+      byRow[i.r].push({ c: i.c, text: (td.innerText || td.textContent || '').trim() });
+    });
+    return Object.keys(byRow).sort(function(a,b){return a-b;}).map(function(r) {
+      return byRow[r].sort(function(a,b){return a.c-b.c;}).map(function(x){return x.text;}).join('\t');
+    }).join('\n');
+  }
 
-            html += `</table>`;
-            return html;
-        }
+  // ── copy to clipboard ──
+  function copySelection() {
+    var text = getSelText();
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(flashGlow).catch(function(){fallbackCopy(text);});
+    } else { fallbackCopy(text); }
+  }
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.cssText='position:fixed;opacity:0;top:0;left:0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    flashGlow();
+  }
 
-        function toggleRows(className) {
-            let rows = document.querySelectorAll(`.${className}`);
-            let icon = document.getElementById(`icon-${className}`);
-            let isHidden = rows[0].style.display === 'none';
+  // ── mouse events ──
+  document.addEventListener('mousedown', function(e) {
+    var td = e.target.closest('tbody td.ik-sel-cell');
+    if (!td) return;
+    // Don't hijack contenteditable grid cells focus
+    if (td.querySelector('[contenteditable]') || td.getAttribute('contenteditable')) return;
+    _dragging = true; _anchor = td; _active = td;
+    clearSel();
+    td.classList.add('ik-anchor');
+    e.preventDefault();
+  }, true);
 
-            rows.forEach(row => {
-                row.style.display = isHidden ? 'table-row' : 'none';
-            });
-            icon.innerText = isHidden ? '[-]' : '[+]';
-        }
+  document.addEventListener('mouseover', function(e) {
+    if (!_dragging || !_anchor) return;
+    var td = e.target.closest('tbody td.ik-sel-cell');
+    if (!td) return;
+    _active = td;
+    selectRange(_anchor, _active);
+  });
 
-        // --- SECCIÓN DE GRÁFICOS ---
-        function initChartSelector() {
-            let select = document.getElementById('region-select');
-            select.innerHTML = '<option value="">Selecciona una Región para graficar...</option>';
-            
-            Object.keys(globalData).sort().forEach(region => {
-                select.innerHTML += `<option value="${region}">${region}</option>`;
-            });
-        }
+  document.addEventListener('mouseup', function() { _dragging = false; });
 
-        function copiarPatentesRegion() {
-            let region = document.getElementById('region-select').value;
-            if (!region || !globalData[region]) return;
+  // click outside → clear
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('tbody td')) { clearSel(); _anchor=null; _active=null; }
+  });
 
-            let patentesNombres = Object.keys(globalData[region].patentes).sort();
-            let texto = patentesNombres.join('\n');
-            copiarAlPortapapeles(texto, `✅ ¡${patentesNombres.length} patentes copiadas!`);
-        }
+  // ── keyboard ──
+  document.addEventListener('keydown', function(e) {
+    // Ctrl+C → copy selection if any selected cells
+    if ((e.ctrlKey||e.metaKey) && e.key==='c') {
+      var hasSel = document.querySelectorAll('.ik-selected,.ik-anchor').length > 0;
+      if (!hasSel) return;
+      copySelection();
+      e.stopPropagation();
+      return;
+    }
+    // Shift+Arrow → extend selection
+    if (e.shiftKey && ['ArrowDown','ArrowUp','ArrowLeft','ArrowRight'].includes(e.key) && _anchor) {
+      e.preventDefault();
+      var cur = _active || _anchor;
+      var table = cur.closest('table');
+      if (!table) return;
+      var ia = idx(cur);
+      var rows = Array.from(cur.closest('tbody').rows);
+      var nr = ia.r, nc = ia.c;
+      if (e.key==='ArrowDown')  nr = Math.min(nr+1, rows.length-1);
+      if (e.key==='ArrowUp')    nr = Math.max(nr-1, 0);
+      if (e.key==='ArrowRight') nc = Math.min(nc+1, rows[0].cells.length-1);
+      if (e.key==='ArrowLeft')  nc = Math.max(nc-1, 0);
+      var newCell = rows[nr] && rows[nr].cells[nc];
+      if (newCell) { _active = newCell; selectRange(_anchor, _active); }
+    }
+  });
 
-        // Asignación de colores
-        function getColorForEstado(estado) {
-            let e = estado.toLowerCase();
-            if (e.includes('terminado')) return '#4CAF50'; // Verde
-            if (e.includes('pendiente')) return '#FBD914'; // Amarillo
-            if (e.includes('en ruta')) return '#F44336'; // Rojo
-            if (e.includes('planificado')) return '#FF9800'; // Naranja (agrupa ambos)
-            return '#0058a3'; // Azul por defecto
-        }
+  // expose globally so copy buttons can call it
+  window.ikCopySelection = copySelection;
+  window.ikFlashGlow = flashGlow;
+})();
 
-        function updateChart() {
-            let region = document.getElementById('region-select').value;
-            let btnCopy = document.getElementById('btn-copy-patentes');
-            
-            if (!region) {
-                btnCopy.style.display = 'none';
-                if (myChart) myChart.destroy();
-                return;
-            }
-
-            btnCopy.style.display = 'inline-block';
-
-            let ctx = document.getElementById('avanceChart').getContext('2d');
-            if (myChart) myChart.destroy();
-
-            let patentesData = globalData[region].patentes;
-            let patentesNombres = Object.keys(patentesData).sort();
-
-            // Mapear los estados para agrupar "Planificado" y "Planificado En Simpliroute"
-            let chartEstadosMap = {};
-            uniqueEstados.forEach(estado => {
-                let norm = estado.trim().toLowerCase();
-                let chartName = estado;
-                
-                // Agrupación exclusiva para el gráfico
-                if (norm === 'planificado' || norm === 'planificado en simpliroute') {
-                    chartName = 'Planificado'; 
-                }
-                
-                if (!chartEstadosMap[chartName]) {
-                    chartEstadosMap[chartName] = [];
-                }
-                chartEstadosMap[chartName].push(estado);
-            });
-
-            let chartLabels = Object.keys(chartEstadosMap).sort();
-
-            let datasets = chartLabels.map(chartEstado => {
-                let color = getColorForEstado(chartEstado);
-                return {
-                    label: chartEstado,
-                    backgroundColor: color,
-                    data: patentesNombres.map(p => {
-                        let sum = 0;
-                        // Sumamos los valores de todos los estados originales que corresponden a este grupo
-                        chartEstadosMap[chartEstado].forEach(origEstado => {
-                            if (patentesData[p].estados[origEstado]) {
-                                sum += patentesData[p].estados[origEstado].size;
-                            }
-                        });
-                        return sum;
-                    })
-                };
-            });
-
-            myChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: patentesNombres,
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    onClick: (e, activeEls, chart) => {
-                        if (activeEls.length > 0) {
-                            const dataIndex = activeEls[0].index;
-                            const label = chart.data.labels[dataIndex];
-                            copiarAlPortapapeles(label, `✅ Patente ${label} copiada`);
-                        }
-                    },
-                    plugins: {
-                        tooltip: { mode: 'index', intersect: false },
-                        legend: { position: 'bottom' }
-                    },
-                    scales: {
-                        x: { stacked: true, title: { display: true, text: 'Patentes' } },
-                        y: { stacked: true, title: { display: true, text: 'Recuento de Órdenes' }, beginAtZero: true }
-                    }
-                }
-            });
-        }
-    </script>
 </body>
 </html>

@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verificador Vehículos — IKEA Tools</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #0d1117;
+  --surface:    #161b22;
+  --surface2:   #1c2128;
+  --surface3:   #22272e;
+  --border:     #30363d;
+  --border2:    #3d444d;
+  --blue:       #0051BA;
+  --blue-dark:  #003A8C;
+  --blue-mid:   #1a6dd4;
+  --yellow:     #FFDA1A;
+  --yellow-dk:  #e6c400;
+  --green:      #3fb950;
+  --red:        #f85149;
+  --red-bg:     rgba(248,81,73,.12);
+  --orange:     #f0883e;
+  --purple:     #a371f7;
+  --teal:       #00c48c;
+  --text:       #e6edf3;
+  --text-muted: #8b949e;
+  --text-dim:   #656d76;
+  --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --r:  8px;
+  --rs: 6px;
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── HEADER ── */
+.ik-header {
+  background: linear-gradient(135deg, var(--blue-dark), var(--blue) 55%, var(--blue-mid));
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 3px solid var(--yellow);
+  height: 52px;
+  flex-shrink: 0;
+  z-index: 10;
+}
+.ik-header-left  { display: flex; align-items: center; gap: 12px; }
+.ik-header-right { display: flex; align-items: center; gap: 7px; }
+.ik-header h1 { font-size: 15px; font-weight: 700; letter-spacing: 1.5px; color: var(--yellow); text-transform: uppercase; }
+.ik-header-sub { font-size: 10px; color: rgba(255,255,255,.45); letter-spacing: .5px; }
+.ik-back {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600; color: rgba(255,255,255,.55);
+  text-decoration: none; padding: 4px 9px; border-radius: var(--rs);
+  border: 1px solid rgba(255,255,255,.15); transition: all .15s;
+}
+.ik-back:hover { color: var(--yellow); border-color: rgba(255,218,26,.4); background: rgba(255,218,26,.07); }
+
+/* ── LAYOUT ── */
+.ik-app { display: flex; height: calc(100vh - 52px); }
+
+.ik-sidebar {
+  width: 300px; min-width: 300px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  display: flex; flex-direction: column;
+}
+
+.ik-main { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+
+/* ── SIDEBAR SECTIONS ── */
+.sb-section { padding: 14px 14px 0; display: flex; flex-direction: column; gap: 8px; }
+.sb-section + .sb-section { border-top: 1px solid var(--border); margin-top: 14px; padding-top: 14px; }
+.sb-last { padding-bottom: 16px; }
+
+.lbl { font-size: 9px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; }
+
+/* ── UPLOAD ZONE ── */
+.ik-upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--r);
+  padding: 14px 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 5px; cursor: pointer; transition: all .18s; text-align: center; background: var(--bg);
+}
+.ik-upload-zone:hover, .ik-upload-zone.drag { border-color: var(--blue); background: rgba(0,81,186,.04); }
+.ik-upload-zone.loaded { border-color: var(--green); border-style: solid; background: rgba(63,185,80,.04); }
+.upload-icon { font-size: 22px; opacity: .7; }
+.upload-lbl { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+.upload-sub { font-size: 10px; color: var(--text-dim); font-family: var(--mono); }
+.file-input-hidden { display: none; }
+
+/* ── STATS ── */
+.stat-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.stat-pill {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--rs); padding: 6px 9px;
+  display: flex; flex-direction: column; gap: 2px; min-width: 60px;
+}
+.stat-num { font-size: 16px; font-weight: 800; color: var(--text); font-family: var(--mono); line-height: 1; }
+.stat-lbl { font-size: 9px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+.stat-num.blue   { color: #7bb8ff; }
+.stat-num.green  { color: var(--green); }
+.stat-num.orange { color: var(--orange); }
+.stat-num.red    { color: var(--red); }
+
+/* ── BUTTONS ── */
+button {
+  font-family: var(--sans); font-weight: 600; font-size: 12px;
+  border: none; border-radius: var(--rs); cursor: pointer;
+  padding: 6px 12px; transition: all .12s;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+button:disabled { opacity: .35; cursor: not-allowed; }
+.btn-blue   { background: var(--blue); color: #fff; }
+.btn-blue:hover:not(:disabled) { background: var(--blue-mid); transform: translateY(-1px); }
+.btn-yellow { background: var(--yellow); color: #111; font-weight: 700; }
+.btn-yellow:hover:not(:disabled) { background: var(--yellow-dk); }
+.btn-ghost  { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+.btn-ghost:hover:not(:disabled) { background: var(--surface2); color: var(--text); }
+.btn-full { width: 100%; justify-content: center; }
+.btn-sm { padding: 4px 9px; font-size: 11px; }
+
+/* ── INFO BOXES ── */
+.ik-info-box {
+  background: rgba(0,81,186,.08); border: 1px solid rgba(0,81,186,.22);
+  border-radius: var(--rs); padding: 8px 11px;
+  font-size: 10px; color: #7bb8ff; line-height: 1.6;
+}
+.ik-success-box {
+  background: rgba(63,185,80,.1); border: 1px solid rgba(63,185,80,.3);
+  border-radius: var(--rs); padding: 8px 11px;
+  font-size: 10px; color: var(--green); line-height: 1.6;
+}
+.ik-warn-box {
+  background: rgba(240,136,62,.08); border: 1px solid rgba(240,136,62,.28);
+  border-radius: var(--rs); padding: 7px 9px;
+  font-size: 10px; color: var(--orange); line-height: 1.5;
+}
+
+/* ── STEP INDICATOR ── */
+.step-row { display: flex; align-items: center; gap: 8px; }
+.step-dot {
+  width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; flex-shrink: 0;
+  background: var(--surface3); border: 1px solid var(--border); color: var(--text-dim);
+}
+.step-dot.done { background: rgba(63,185,80,.2); border-color: var(--green); color: var(--green); }
+.step-dot.active { background: rgba(0,81,186,.25); border-color: var(--blue); color: #7bb8ff; }
+.step-label { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+
+/* ── MAIN CONTENT ── */
+.main-inner {
+  flex: 1; overflow: hidden;
+  display: flex; flex-direction: column;
+  padding: 14px; gap: 10px;
+}
+
+/* ── TOOLBAR ── */
+.toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-shrink: 0;
+}
+.toolbar-left { display: flex; align-items: center; gap: 8px; }
+.toolbar-right { display: flex; align-items: center; gap: 6px; }
+
+.result-info {
+  font-size: 11px; color: var(--text-muted); font-family: var(--mono);
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--rs); padding: 4px 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.cnt-green  { color: var(--green); font-weight: 700; }
+.cnt-red    { color: var(--red);   font-weight: 700; }
+.cnt-yellow { color: var(--yellow); font-weight: 700; }
+
+/* ── FILTER BAR ── */
+.filter-bar {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--rs); padding: 7px 10px;
+}
+.filter-bar input[type="text"] {
+  flex: 1; background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--rs); color: var(--text); font-family: var(--mono);
+  font-size: 11px; padding: 5px 8px; outline: none; transition: border-color .12s;
+}
+.filter-bar input[type="text"]:focus { border-color: var(--blue); }
+.filter-label { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
+
+/* ── TABLE WRAP ── */
+.table-wrap {
+  flex: 1; overflow: auto;
+  border: 1px solid var(--border); border-radius: var(--r);
+  background: var(--surface);
+}
+
+table { border-collapse: collapse; min-width: 100%; font-size: 12px; }
+
+thead th {
+  background: var(--surface3); border: 1px solid var(--border);
+  padding: 10px 14px; text-align: left;
+  font-weight: 700; font-size: 10px; letter-spacing: .5px;
+  text-transform: uppercase; color: var(--text-muted);
+  position: sticky; top: 0; z-index: 5; white-space: nowrap;
+}
+thead th:first-child { color: var(--yellow); }
+
+tbody td {
+  border: 1px solid var(--border);
+  padding: 9px 14px; color: var(--text);
+  font-family: var(--mono); font-size: 12px;
+  vertical-align: middle;
+}
+tbody td:first-child { font-weight: 700; color: #7bb8ff; }
+tbody td:nth-child(2) { font-weight: 600; color: var(--text); letter-spacing: .5px; }
+
+tbody tr:hover td { background: rgba(255,255,255,.02); }
+
+/* ── STATUS CELL ── */
+.status-entregado {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; white-space: nowrap;
+  background: #dcfce7; color: #166534;
+  border: 1px solid #86efac;
+}
+.status-pendiente {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; white-space: nowrap;
+  background: #fee2e2; color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; min-height: 200px; gap: 12px; color: var(--text-dim); text-align: center;
+}
+.empty-icon { font-size: 38px; opacity: .5; }
+.empty-title { font-size: 14px; font-weight: 600; color: var(--text-muted); }
+.empty-sub { font-size: 11px; max-width: 320px; line-height: 1.7; }
+
+/* ── NOTIFICATION ── */
+.ik-notif {
+  display: none; position: fixed; top: 62px; right: 18px; z-index: 9999;
+  padding: 9px 15px; border-radius: var(--rs); font-weight: 600; font-size: 12px;
+  max-width: 340px; animation: slideIn .18s ease; box-shadow: 0 8px 24px rgba(0,0,0,.5);
+}
+@keyframes slideIn { from { opacity:0; transform:translateX(12px); } to { opacity:1; transform:translateX(0); } }
+.notif-ok   { background: rgba(63,185,80,.12);  color: var(--green); border: 1px solid var(--green); }
+.notif-err  { background: rgba(248,81,73,.15);  color: #ff7b72;      border: 1px solid var(--red);   }
+.notif-warn { background: rgba(240,136,62,.15); color: var(--orange); border: 1px solid var(--orange); }
+.notif-info { background: rgba(0,81,186,.15);   color: #7bb8ff;      border: 1px solid var(--blue);  }
+
+/* ── COPY FLASH ── */
+.copy-flash {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--green); color: #0d1117; font-weight: 700; font-size: 12px;
+  padding: 8px 20px; border-radius: 20px; z-index: 9999;
+  pointer-events: none; opacity: 0; transition: opacity .25s;
+  box-shadow: 0 4px 20px rgba(63,185,80,.4);
+}
+.copy-flash.show { opacity: 1; }
+
+/* ── PATENTE BADGE ── */
+.patente-badge {
+  background: rgba(163,113,247,.15); color: var(--purple);
+  border: 1px solid rgba(163,113,247,.3);
+  border-radius: 4px; padding: 1px 7px; font-size: 11px; font-weight: 700;
+  font-family: var(--mono); letter-spacing: .5px;
+}
+.patente-empty { color: var(--text-dim); font-style: italic; font-size: 11px; }
+
+/* ── VEH FINAL BADGE ── */
+.veh-final-badge {
+  background: rgba(240,136,62,.15); color: var(--orange);
+  border: 1px solid rgba(240,136,62,.3);
+  border-radius: 4px; padding: 1px 7px; font-size: 11px; font-weight: 700;
+  font-family: var(--mono); letter-spacing: .3px;
+}
+.veh-final-same { color: var(--text-dim); font-size: 11px; font-style: italic; }
+.veh-inicial-dim { font-size: 10px; color: var(--text-dim); display:block; margin-top:2px; }
+
+/* ── IKEA EXCEL SELECTION ── */
+.ik-sel-cell {
+  cursor: cell !important;
+  user-select: none !important;
+  position: relative;
+  transition: background .07s;
+}
+.ik-sel-cell.ik-selected {
+  background: rgba(0,81,186,.20) !important;
+  outline: 1px solid rgba(0,81,186,.55);
+  outline-offset: -1px;
+}
+.ik-sel-cell.ik-anchor {
+  background: rgba(0,81,186,.32) !important;
+  outline: 2px solid #0051BA !important;
+  outline-offset: -2px;
+  box-shadow: inset 0 0 14px rgba(0,81,186,.12), 0 0 0 1px rgba(0,81,186,.3);
+}
+/* glow flash on copy */
+.ik-copy-glow {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%) scale(.92);
+  background: rgba(63,185,80,.12);
+  border: 1px solid #3fb950;
+  color: #3fb950;
+  font-weight: 700; font-size: 13px;
+  padding: 10px 26px;
+  border-radius: 9px;
+  z-index: 99999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s, transform .18s;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 32px rgba(63,185,80,.28);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+.ik-copy-glow.ik-glow-show {
+  opacity: 1;
+  transform: translate(-50%,-50%) scale(1);
+}
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="ik-header">
+  <div class="ik-header-left">
+    <span style="font-size:20px">🚛</span>
+    <div>
+      <h1>Verificador Vehículos</h1>
+      <div class="ik-header-sub">Cruce Simpliroute + Reporte · Estado de entrega por vehículo</div>
+    </div>
+  </div>
+  <div class="ik-header-right">
+    <a class="ik-back" href="index.html">← Inicio</a>
+  </div>
+</div>
+
+<div class="ik-app">
+
+  <!-- SIDEBAR -->
+  <div class="ik-sidebar">
+
+    <!-- PASO 1: Reporte -->
+    <div class="sb-section">
+      <div class="step-row">
+        <div class="step-dot" id="dot1">1</div>
+        <div class="step-label">Reporte de Planificación (CSV)</div>
+      </div>
+      <div class="ik-info-box">
+        Se filtra <strong>Commerce = IKEA</strong> y se eliminan filas con <strong>Patente vacía</strong>.
+      </div>
+      <div class="ik-upload-zone" id="zone1" onclick="document.getElementById('fileReporte').click()">
+        <div class="upload-icon">📄</div>
+        <div class="upload-lbl" id="lbl1">Haz clic o arrastra el Reporte CSV</div>
+        <div class="upload-sub" id="sub1">Commerce · ParentOrder · Patente</div>
+      </div>
+      <input type="file" id="fileReporte" class="file-input-hidden" accept=".csv,.txt">
+      <div class="stat-row" id="stats1" style="display:none">
+        <div class="stat-pill"><div class="stat-num blue" id="s1total">0</div><div class="stat-lbl">Total</div></div>
+        <div class="stat-pill"><div class="stat-num green" id="s1ikea">0</div><div class="stat-lbl">IKEA</div></div>
+        <div class="stat-pill"><div class="stat-num orange" id="s1patente">0</div><div class="stat-lbl">Con patente</div></div>
+      </div>
+    </div>
+
+    <!-- PASO 2: Simpliroute -->
+    <div class="sb-section">
+      <div class="step-row">
+        <div class="step-dot" id="dot2">2</div>
+        <div class="step-label">Plan Simpliroute (XLSX / CSV)</div>
+      </div>
+      <div class="ik-info-box">
+        Se extraen <strong>Vehículo</strong> y <strong>Título</strong> (ISO). Se cruza Título con ParentOrder del reporte.
+      </div>
+      <div class="ik-upload-zone" id="zone2" onclick="document.getElementById('fileSimpli').click()">
+        <div class="upload-icon">🗺️</div>
+        <div class="upload-lbl" id="lbl2">Haz clic o arrastra el Plan Simpli</div>
+        <div class="upload-sub" id="sub2">Vehículo · Título — XLSX o CSV</div>
+      </div>
+      <input type="file" id="fileSimpli" class="file-input-hidden" accept=".xlsx,.xls,.csv,.txt">
+      <div class="stat-row" id="stats2" style="display:none">
+        <div class="stat-pill"><div class="stat-num blue" id="s2isos">0</div><div class="stat-lbl">ISOs</div></div>
+        <div class="stat-pill"><div class="stat-num green" id="s2vehs">0</div><div class="stat-lbl">Vehículos</div></div>
+      </div>
+    </div>
+
+    <!-- PASO 3: Conversión vehículos -->
+    <div class="sb-section">
+      <div class="step-row">
+        <div class="step-dot" id="dot3">3</div>
+        <div class="step-label">Archivo de Conversión (XLSX)</div>
+      </div>
+      <div class="ik-info-box">
+        Hoja <strong>Plan</strong> · columnas <strong>VEH INICIAL</strong> → <strong>VEH FINAL</strong>. Convierte el nombre del vehículo Simpli al nombre final.
+      </div>
+      <div class="ik-upload-zone" id="zone3" onclick="document.getElementById('fileConversion').click()">
+        <div class="upload-icon">🔄</div>
+        <div class="upload-lbl" id="lbl3">Haz clic o arrastra el archivo de conversión</div>
+        <div class="upload-sub" id="sub3">XLSX · Hoja "Plan" · VEH INICIAL · VEH FINAL</div>
+      </div>
+      <input type="file" id="fileConversion" class="file-input-hidden" accept=".xlsx,.xls">
+      <div class="stat-row" id="stats3" style="display:none">
+        <div class="stat-pill"><div class="stat-num orange" id="s3conv">0</div><div class="stat-lbl">Conversiones</div></div>
+      </div>
+    </div>
+
+    <!-- PASO 4: Cruzar -->
+    <div class="sb-section">
+      <div class="step-row">
+        <div class="step-dot" id="dot4">4</div>
+        <div class="step-label">Cruzar y visualizar</div>
+      </div>
+      <button class="btn-blue btn-full" id="btnCruzar" onclick="cruzar()" disabled>
+        ⚡ Cruzar archivos
+      </button>
+      <button class="btn-ghost btn-full btn-sm" onclick="resetTodo()">✕ Reiniciar todo</button>
+    </div>
+
+    <!-- PASO 5: Exportar -->
+    <div class="sb-section sb-last">
+      <div class="step-row">
+        <div class="step-dot" id="dot5">5</div>
+        <div class="step-label">Exportar</div>
+      </div>
+      <button class="btn-yellow btn-full" id="btnCopiar" onclick="copiarTabla()" disabled>
+        📋 Copiar tabla (Excel)
+      </button>
+      <div class="ik-info-box" style="margin-top:2px;">
+        Copia con formato condicional de colores, bordes negros y encabezados en negrita.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MAIN -->
+  <div class="ik-main">
+    <div class="main-inner">
+
+      <!-- TOOLBAR (hidden until results) -->
+      <div class="toolbar" id="toolbar" style="display:none">
+        <div class="toolbar-left">
+          <div class="result-info">
+            <span>Vehículos:</span>
+            <span class="cnt-yellow" id="cntVehs">0</span>
+            <span style="color:var(--border2)">|</span>
+            <span class="cnt-green" id="cntEnt">0</span>
+            <span>entregados</span>
+            <span style="color:var(--border2)">|</span>
+            <span class="cnt-red" id="cntPend">0</span>
+            <span>pendientes</span>
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <span style="font-size:10px; color:var(--text-dim); font-family:var(--mono);" id="isosCruzadas"></span>
+        </div>
+      </div>
+
+      <!-- FILTER BAR -->
+      <div class="filter-bar" id="filterBar" style="display:none">
+        <span class="filter-label">🔍 Filtrar:</span>
+        <input type="text" id="filterInput" placeholder="Vehículo o patente…" oninput="filtrarTabla()">
+        <button class="btn-ghost btn-sm" onclick="document.getElementById('filterInput').value='';filtrarTabla()">✕</button>
+      </div>
+
+      <!-- TABLE WRAP -->
+      <div class="table-wrap" id="tableWrap">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">🚛</div>
+          <div class="empty-title">Sin datos aún</div>
+          <div class="empty-sub">Carga el reporte CSV y el plan de Simpliroute, luego haz clic en <strong>Cruzar archivos</strong> para ver el estado de entrega por vehículo.</div>
+        </div>
+        <table id="resultTable" style="display:none">
+          <thead>
+            <tr>
+              <th>Vehículo</th>
+              <th>Patente</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="resultBody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Notif & Flash -->
+<div class="ik-notif" id="notif"></div>
+<div class="copy-flash" id="copyFlash">✓ Copiado al portapapeles</div>
+
+<script src="xlsx_min.js"></script>
+<script>
+// ──────────────────────────────────────────────
+let reporteData    = null;  // Map: parentOrder → patente
+let simpliData     = null;  // Array: { vehiculo, titulo }
+let conversionMap  = null;  // Map: veh_inicial → veh_final (opcional)
+let resultadoData  = [];
+let filteredData   = [];
+
+// ──────────────────────────────────────────────
+//  CSV PARSER
+// ──────────────────────────────────────────────
+function detectSep(line) {
+  const sc = (line.match(/;/g)||[]).length;
+  const cc = (line.match(/,/g)||[]).length;
+  const tc = (line.match(/\t/g)||[]).length;
+  if (tc > sc && tc > cc) return '\t';
+  return sc > cc ? ';' : ',';
+}
+
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return null;
+  const sep = detectSep(lines[0]);
+  const headers = parseRow(lines[0], sep).map(h => clean(h));
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseRow(lines[i], sep).map(clean);
+    const obj = {};
+    headers.forEach((h, j) => { obj[h] = cols[j] || ''; });
+    rows.push(obj);
+  }
+  return { headers, rows };
+}
+
+function parseRow(line, sep) {
+  const res = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQ = !inQ; }
+    else if (c === sep && !inQ) { res.push(cur); cur = ''; }
+    else { cur += c; }
+  }
+  res.push(cur);
+  return res;
+}
+
+function clean(s) { return (s||'').trim().replace(/^"|"$/g,'').trim(); }
+
+function findCol(headers, candidates) {
+  for (const c of candidates) {
+    const i = headers.findIndex(h => h.toLowerCase() === c.toLowerCase());
+    if (i !== -1) return headers[i];
+  }
+  // partial match
+  for (const c of candidates) {
+    const i = headers.findIndex(h => h.toLowerCase().includes(c.toLowerCase()));
+    if (i !== -1) return headers[i];
+  }
+  return null;
+}
+
+// ──────────────────────────────────────────────
+//  FILE HANDLERS
+// ──────────────────────────────────────────────
+document.getElementById('fileReporte').addEventListener('change', function() {
+  if (this.files[0]) readFile(this.files[0], 'reporte');
+});
+document.getElementById('fileSimpli').addEventListener('change', function() {
+  if (this.files[0]) readFile(this.files[0], 'simpli');
+});
+document.getElementById('fileConversion').addEventListener('change', function() {
+  if (this.files[0]) processConversion(this.files[0]);
+});
+
+// Drag & drop para las 3 zonas
+[['zone1','reporte'],['zone2','simpli'],['zone3','conv']].forEach(([zid, tipo]) => {
+  const z = document.getElementById(zid);
+  z.addEventListener('dragover', e => { e.preventDefault(); z.classList.add('drag'); });
+  z.addEventListener('dragleave', () => z.classList.remove('drag'));
+  z.addEventListener('drop', e => {
+    e.preventDefault(); z.classList.remove('drag');
+    const f = e.dataTransfer.files[0];
+    if (f) {
+      if (tipo === 'conv') processConversion(f);
+      else readFile(f, tipo);
+    }
+  });
+});
+
+function readFile(file, tipo) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (tipo === 'simpli' && (ext === 'xlsx' || ext === 'xls')) {
+    readXLSX(file);
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => tipo === 'reporte' ? processReporte(e.target.result, file.name)
+                                           : processSimpliCSV(e.target.result, file.name);
+  reader.readAsText(file, 'UTF-8');
+}
+
+function readXLSX(file) {
+  if (typeof XLSX === 'undefined') {
+    notify('Librería XLSX no disponible. Asegúrate que xlsx_min.js esté en la misma carpeta.', 'err');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      processSimpliRows(json, file.name);
+    } catch(err) {
+      notify('Error leyendo el XLSX: ' + err.message, 'err');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ──────────────────────────────────────────────
+//  PROCESS REPORTE
+// ──────────────────────────────────────────────
+function processReporte(text, fname) {
+  const parsed = parseCSV(text);
+  if (!parsed) { notify('No se pudo leer el archivo de reporte', 'err'); return; }
+
+  const { headers, rows } = parsed;
+  const colCommerce = findCol(headers, ['commerce','Commerce']);
+  const colParent   = findCol(headers, ['parentorder','ParentOrder','parent_order']);
+  const colPatente  = findCol(headers, ['patente','Patente','PATENTE','placa','Placa']);
+
+  if (!colParent) { notify('No se encontró columna ParentOrder en el reporte', 'err'); return; }
+  if (!colPatente) { notify('No se encontró columna Patente en el reporte', 'err'); return; }
+
+  const total = rows.length;
+  let ikeaRows = rows;
+
+  // Filtrar Commerce = IKEA si existe la columna
+  if (colCommerce) {
+    ikeaRows = ikeaRows.filter(r => (r[colCommerce]||'').toUpperCase().trim() === 'IKEA');
+  }
+
+  // Quitar filas con Patente vacía
+  const conPatente = ikeaRows.filter(r => (r[colPatente]||'').trim() !== '');
+
+  // Construir mapa parentOrder → patente
+  reporteData = new Map();
+  conPatente.forEach(r => {
+    const key = (r[colParent]||'').trim().toLowerCase();
+    if (key) reporteData.set(key, (r[colPatente]||'').trim());
+  });
+
+  // UI update
+  document.getElementById('s1total').textContent   = total.toLocaleString();
+  document.getElementById('s1ikea').textContent    = ikeaRows.length.toLocaleString();
+  document.getElementById('s1patente').textContent = conPatente.length.toLocaleString();
+  document.getElementById('stats1').style.display  = '';
+  document.getElementById('zone1').classList.add('loaded');
+  document.getElementById('lbl1').textContent = `✓ ${fname}`;
+  document.getElementById('sub1').textContent = `${conPatente.length} ISOs con patente asignada`;
+  document.getElementById('dot1').classList.add('done');
+  document.getElementById('dot1').textContent = '✓';
+
+  notify(`Reporte cargado · ${conPatente.length} ISOs IKEA con patente`, 'ok');
+  checkReadyToCross();
+}
+
+// ──────────────────────────────────────────────
+//  PROCESS SIMPLI
+// ──────────────────────────────────────────────
+function processSimpliCSV(text, fname) {
+  const parsed = parseCSV(text);
+  if (!parsed) { notify('No se pudo leer el plan Simpliroute', 'err'); return; }
+  processSimpliRows(parsed.rows, fname);
+}
+
+function processSimpliRows(rows, fname) {
+  // Normalize keys: trim and handle accented chars
+  const normalize = s => (s||'').trim().toLowerCase()
+    .replace(/\u00e1/g,'a').replace(/\u00e9/g,'e').replace(/\u00ed/g,'i')
+    .replace(/\u00f3/g,'o').replace(/\u00fa/g,'u')
+    .replace(/\u00c1/g,'a').replace(/\u00c9/g,'e').replace(/\u00cd/g,'i')
+    .replace(/\u00d3/g,'o').replace(/\u00da/g,'u');
+
+  const headers = Object.keys(rows[0] || {});
+
+  const findKey = (candidates) => {
+    for (const c of candidates) {
+      const k = headers.find(h => normalize(h) === normalize(c));
+      if (k) return k;
+    }
+    for (const c of candidates) {
+      const k = headers.find(h => normalize(h).includes(normalize(c)));
+      if (k) return k;
+    }
+    return null;
+  };
+
+  const colVeh = findKey(['vehículo','vehiculo','vehicle','veh']);
+  const colTit = findKey(['título','titulo','title','iso','parentorder']);
+
+  if (!colVeh) { notify('No se encontró columna Vehículo en Simpliroute. Columnas: ' + headers.slice(0,6).join(', '), 'err'); return; }
+  if (!colTit) { notify('No se encontró columna Título en Simpliroute. Columnas: ' + headers.slice(0,6).join(', '), 'err'); return; }
+
+  simpliData = rows
+    .filter(r => (r[colVeh]||'').toString().trim() !== '' && (r[colTit]||'').toString().trim() !== '')
+    .map(r => ({ vehiculo: (r[colVeh]||'').toString().trim(), titulo: (r[colTit]||'').toString().trim() }));
+
+  const vehs = new Set(simpliData.map(r => r.vehiculo)).size;
+
+  document.getElementById('s2isos').textContent   = simpliData.length.toLocaleString();
+  document.getElementById('s2vehs').textContent   = vehs.toLocaleString();
+  document.getElementById('stats2').style.display = '';
+  document.getElementById('zone2').classList.add('loaded');
+  document.getElementById('lbl2').textContent = `✓ ${fname}`;
+  document.getElementById('sub2').textContent = `${simpliData.length} ISOs en ${vehs} vehículos`;
+  document.getElementById('dot2').classList.add('done');
+  document.getElementById('dot2').textContent = '✓';
+
+  notify(`Plan Simpli cargado · ${simpliData.length} ISOs en ${vehs} vehículos`, 'ok');
+  checkReadyToCross();
+}
+
+function checkReadyToCross() {
+  if (reporteData && simpliData) {
+    document.getElementById('btnCruzar').disabled = false;
+    document.getElementById('dot4').classList.add('active');
+  }
+}
+
+// ──────────────────────────────────────────────
+//  PROCESS CONVERSIÓN XLSX
+// ──────────────────────────────────────────────
+function processConversion(file) {
+  if (typeof XLSX === 'undefined') { notify('Librería XLSX no disponible', 'err'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+
+      // Buscar hoja "Plan" (case-insensitive)
+      const sheetName = wb.SheetNames.find(n => n.trim().toLowerCase() === 'plan') || wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+      if (!rows.length) { notify('La hoja Plan está vacía', 'err'); return; }
+
+      const headers = Object.keys(rows[0]);
+      const normalize = s => (s||'').trim().toLowerCase()
+        .replace(/[áàä]/g,'a').replace(/[éèë]/g,'e').replace(/[íìï]/g,'i')
+        .replace(/[óòö]/g,'o').replace(/[úùü]/g,'u');
+
+      // Buscar VEH INICIAL y VEH FINAL
+      const colIni = headers.find(h => normalize(h).includes('veh') && normalize(h).includes('inic'));
+      const colFin = headers.find(h => normalize(h).includes('veh') && normalize(h).includes('fin'));
+
+      if (!colIni) { notify('No se encontró columna VEH INICIAL. Columnas: ' + headers.slice(0,8).join(', '), 'err'); return; }
+      if (!colFin) { notify('No se encontró columna VEH FINAL. Columnas: ' + headers.slice(0,8).join(', '), 'err'); return; }
+
+      conversionMap = new Map();
+      rows.forEach(r => {
+        const ini = (r[colIni]||'').toString().trim();
+        const fin = (r[colFin]||'').toString().trim();
+        if (ini) conversionMap.set(ini.toLowerCase(), fin || ini);
+      });
+
+      const cnt = conversionMap.size;
+      document.getElementById('s3conv').textContent   = cnt;
+      document.getElementById('stats3').style.display = '';
+      document.getElementById('zone3').classList.add('loaded');
+      document.getElementById('lbl3').textContent = `✓ ${file.name}`;
+      document.getElementById('sub3').textContent = `${cnt} conversiones cargadas · Hoja: ${sheetName}`;
+      document.getElementById('dot3').classList.add('done');
+      document.getElementById('dot3').textContent = '✓';
+
+      notify(`Conversión cargada · ${cnt} vehículos mapeados`, 'ok');
+    } catch(err) {
+      notify('Error leyendo el XLSX de conversión: ' + err.message, 'err');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ──────────────────────────────────────────────
+//  CRUZAR
+// ──────────────────────────────────────────────
+function cruzar() {
+  if (!reporteData || !simpliData) return;
+
+  // Agrupar ISOs por vehículo
+  const vehiculos = new Map();
+  simpliData.forEach(({ vehiculo, titulo }) => {
+    if (!vehiculos.has(vehiculo)) vehiculos.set(vehiculo, { isos: [], patentes: new Set() });
+    const entry = vehiculos.get(vehiculo);
+    entry.isos.push(titulo);
+    const key = titulo.trim().toLowerCase();
+    const patente = reporteData.get(key);
+    if (patente) entry.patentes.add(patente);
+  });
+
+  // Construir resultado con conversión
+  resultadoData = [];
+  vehiculos.forEach((v, vehiculo) => {
+    const patente  = v.patentes.size > 0 ? [...v.patentes].join(' / ') : '';
+    const estado   = patente ? 'entregado' : 'pendiente';
+    // Conversión: buscar veh final
+    let vehFinal = vehiculo;
+    if (conversionMap) {
+      const mapped = conversionMap.get(vehiculo.toLowerCase());
+      if (mapped) vehFinal = mapped;
+    }
+    resultadoData.push({ vehiculo, vehFinal, patente, estado, isoCount: v.isos.length });
+  });
+
+  resultadoData.sort((a, b) => {
+    if (a.estado !== b.estado) return a.estado === 'entregado' ? -1 : 1;
+    return a.vehFinal.localeCompare(b.vehFinal);
+  });
+
+  filteredData = [...resultadoData];
+
+  const ent  = resultadoData.filter(r => r.estado === 'entregado').length;
+  const pend = resultadoData.filter(r => r.estado === 'pendiente').length;
+
+  document.getElementById('cntVehs').textContent      = resultadoData.length;
+  document.getElementById('cntEnt').textContent       = ent;
+  document.getElementById('cntPend').textContent      = pend;
+  document.getElementById('isosCruzadas').textContent = `${simpliData.length} ISOs cruzadas`;
+  document.getElementById('toolbar').style.display    = '';
+  document.getElementById('filterBar').style.display  = '';
+  document.getElementById('dot4').classList.remove('active');
+  document.getElementById('dot4').classList.add('done');
+  document.getElementById('dot4').textContent = '✓';
+  document.getElementById('dot5').classList.add('active');
+
+  renderTable(filteredData);
+  document.getElementById('btnCopiar').disabled = false;
+  notify(`Cruce completado · ${ent} entregados · ${pend} pendientes`, 'ok');
+}
+
+// ──────────────────────────────────────────────
+//  RENDER
+// ──────────────────────────────────────────────
+function renderTable(data) {
+  document.getElementById('emptyState').style.display  = 'none';
+  document.getElementById('resultTable').style.display = '';
+
+  const tbody = document.getElementById('resultBody');
+  tbody.innerHTML = '';
+
+  data.forEach(r => {
+    const tr = document.createElement('tr');
+
+    // Vehículo
+    const tdVeh = document.createElement('td');
+    tdVeh.textContent = r.vehiculo;
+
+    // Patente
+    const tdPat = document.createElement('td');
+    if (r.patente) {
+      const b = document.createElement('span');
+      b.className = 'patente-badge';
+      b.textContent = r.patente;
+      tdPat.appendChild(b);
+    } else {
+      const s = document.createElement('span');
+      s.className = 'patente-empty';
+      s.textContent = '— sin patente —';
+      tdPat.appendChild(s);
+    }
+
+    // Estado
+    const tdEst = document.createElement('td');
+    const badge = document.createElement('span');
+    if (r.estado === 'entregado') {
+      badge.className = 'status-entregado';
+      badge.innerHTML = '✓ Vehículo Entregado';
+    } else {
+      badge.className = 'status-pendiente';
+      badge.innerHTML = '⏳ Vehículo Pendiente Entrega';
+    }
+    tdEst.appendChild(badge);
+
+    tr.appendChild(tdVeh);
+    tr.appendChild(tdPat);
+    tr.appendChild(tdEst);
+    tbody.appendChild(tr);
+  });
+}
+
+// ──────────────────────────────────────────────
+//  FILTRAR
+// ──────────────────────────────────────────────
+function filtrarTabla() {
+  const q = document.getElementById('filterInput').value.trim().toLowerCase();
+  if (!q) {
+    filteredData = [...resultadoData];
+  } else {
+    filteredData = resultadoData.filter(r =>
+      r.vehiculo.toLowerCase().includes(q) ||
+      r.patente.toLowerCase().includes(q)
+    );
+  }
+  renderTable(filteredData);
+}
+
+// ──────────────────────────────────────────────
+//  COPIAR TABLA (Excel)
+// ──────────────────────────────────────────────
+function copiarTabla() {
+  if (!filteredData.length) return;
+
+  const hdStyle = 'border:1px solid #000;padding:7px 12px;font-weight:bold;background:#f0f0f0;font-family:Arial,sans-serif;font-size:12px;';
+  const tdBase  = 'border:1px solid #000;padding:7px 12px;font-family:Arial,sans-serif;font-size:12px;';
+  const tdEnt   = tdBase + 'background:#dcfce7;color:#166534;font-weight:bold;';
+  const tdPend  = tdBase + 'background:#fee2e2;color:#991b1b;font-weight:bold;';
+
+  let html = `<table style="border-collapse:collapse;">`;
+  html += `<tr>
+    <th style="${hdStyle}">Vehículo</th>
+    <th style="${hdStyle}">Patente</th>
+    <th style="${hdStyle}">Estado</th>
+  </tr>`;
+  filteredData.forEach(r => {
+    const estTd = r.estado === 'entregado'
+      ? `<td style="${tdEnt}">✓ Vehículo Entregado</td>`
+      : `<td style="${tdPend}">⏳ Vehículo Pendiente Entrega</td>`;
+    html += `<tr>
+      <td style="${tdBase}font-weight:700;">${esc(r.vehiculo)}</td>
+      <td style="${tdBase}">${esc(r.patente)}</td>
+      ${estTd}
+    </tr>`;
+  });
+  html += `</table>`;
+
+  let tsv = 'Vehículo\tPatente\tEstado\n';
+  filteredData.forEach(r => {
+    tsv += `${r.vehiculo}\t${r.patente}\t${r.estado==='entregado'?'Vehículo Entregado':'Vehículo Pendiente Entrega'}\n`;
+  });
+
+  try {
+    const item = new ClipboardItem({
+      'text/html':  new Blob([html],{ type:'text/html' }),
+      'text/plain': new Blob([tsv], { type:'text/plain' })
+    });
+    navigator.clipboard.write([item]).then(flashCopied).catch(() => fallbackCopy(tsv));
+  } catch { fallbackCopy(tsv); }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; document.body.appendChild(ta); ta.select();
+  document.execCommand('copy'); document.body.removeChild(ta);
+  flashCopied();
+}
+function flashCopied() {
+  const el = document.getElementById('copyFlash');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ──────────────────────────────────────────────
+//  RESET
+// ──────────────────────────────────────────────
+function resetTodo() {
+  reporteData = null; simpliData = null; conversionMap = null;
+  resultadoData = []; filteredData = [];
+
+  ['zone1','zone2','zone3'].forEach(id => document.getElementById(id).classList.remove('loaded'));
+  document.getElementById('lbl1').textContent = 'Haz clic o arrastra el Reporte CSV';
+  document.getElementById('sub1').textContent = 'Commerce · ParentOrder · Patente';
+  document.getElementById('lbl2').textContent = 'Haz clic o arrastra el Plan Simpli';
+  document.getElementById('sub2').textContent = 'Vehículo · Título — XLSX o CSV';
+  document.getElementById('lbl3').textContent = 'Haz clic o arrastra el archivo de conversión';
+  document.getElementById('sub3').textContent = 'XLSX · Hoja "Plan" · VEH INICIAL · VEH FINAL';
+  document.getElementById('stats1').style.display = 'none';
+  document.getElementById('stats2').style.display = 'none';
+  document.getElementById('stats3').style.display = 'none';
+  document.getElementById('toolbar').style.display = 'none';
+  document.getElementById('filterBar').style.display = 'none';
+  document.getElementById('filterInput').value = '';
+  document.getElementById('resultTable').style.display = 'none';
+  document.getElementById('emptyState').style.display = '';
+  document.getElementById('btnCruzar').disabled = true;
+  document.getElementById('btnCopiar').disabled = true;
+  document.getElementById('resultBody').innerHTML = '';
+  document.getElementById('fileReporte').value = '';
+  document.getElementById('fileSimpli').value = '';
+  document.getElementById('fileConversion').value = '';
+
+  ['dot1','dot2','dot3','dot4'].forEach(id => {
+    const d = document.getElementById(id);
+    d.classList.remove('done','active');
+    d.textContent = id.replace('dot','');
+  });
+  document.getElementById('dot5').classList.remove('active');
+}
+
+// ──────────────────────────────────────────────
+//  NOTIFY
+// ──────────────────────────────────────────────
+function notify(msg, type='info') {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.className = `ik-notif notif-${type}`;
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.display = 'none'; }, 3400);
+}
+</script>
+
+// ═══════════════════════════════════════════════
+//  IKEA EXCEL-LIKE CELL SELECTION (universal)
+// ═══════════════════════════════════════════════
+(function() {
+  var _anchor = null, _active = null, _dragging = false;
+
+  // ── inject glow div ──
+  var _glow = document.createElement('div');
+  _glow.className = 'ik-copy-glow';
+  _glow.id = 'ikCopyGlow';
+  _glow.textContent = '✓ Copiado';
+  document.body.appendChild(_glow);
+  var _glowT;
+  function flashGlow() {
+    _glow.classList.add('ik-glow-show');
+    clearTimeout(_glowT);
+    _glowT = setTimeout(function(){ _glow.classList.remove('ik-glow-show'); }, 1600);
+  }
+
+  // ── mark all td/th in standard tables as selectable ──
+  function markSelectableCells() {
+    document.querySelectorAll('tbody td, .ik-grid-table tbody td').forEach(function(td) {
+      td.classList.add('ik-sel-cell');
+    });
+  }
+
+  // ── also watch for dynamically rendered tables ──
+  var _mo = new MutationObserver(function() { markSelectableCells(); });
+  _mo.observe(document.body, { childList: true, subtree: true });
+  markSelectableCells();
+
+  // ── get row/col indices ──
+  function idx(td) {
+    var tr = td.parentElement;
+    var ri = Array.from(tr.parentElement.rows || tr.parentElement.children).indexOf(tr);
+    var ci = Array.from(tr.cells || tr.children).indexOf(td);
+    return { r: ri, c: ci };
+  }
+
+  // ── clear all selection highlight ──
+  function clearSel() {
+    document.querySelectorAll('.ik-selected,.ik-anchor').forEach(function(el) {
+      el.classList.remove('ik-selected','ik-anchor');
+    });
+  }
+
+  // ── select range between two cells (must be in same table) ──
+  function selectRange(a, b) {
+    if (!a || !b) return;
+    // find shared table
+    var tA = a.closest('table'), tB = b.closest('table');
+    if (!tA || tA !== tB) { clearSel(); if(a) { a.classList.add('ik-anchor'); } return; }
+    clearSel();
+    var ia = idx(a), ib = idx(b);
+    var r1 = Math.min(ia.r,ib.r), r2 = Math.max(ia.r,ib.r);
+    var c1 = Math.min(ia.c,ib.c), c2 = Math.max(ia.c,ib.c);
+    var tbody = a.closest('tbody') || a.closest('table');
+    Array.from(tbody.rows || tbody.querySelectorAll('tr')).slice(r1, r2+1).forEach(function(tr) {
+      Array.from(tr.cells).slice(c1, c2+1).forEach(function(td) {
+        td.classList.add('ik-selected');
+      });
+    });
+    a.classList.add('ik-anchor');
+  }
+
+  // ── get text from selected cells as TSV ──
+  function getSelText() {
+    var cells = Array.from(document.querySelectorAll('.ik-selected,.ik-anchor'));
+    if (!cells.length) return '';
+    var byRow = {};
+    cells.forEach(function(td) {
+      var i = idx(td);
+      if (!byRow[i.r]) byRow[i.r] = [];
+      byRow[i.r].push({ c: i.c, text: (td.innerText || td.textContent || '').trim() });
+    });
+    return Object.keys(byRow).sort(function(a,b){return a-b;}).map(function(r) {
+      return byRow[r].sort(function(a,b){return a.c-b.c;}).map(function(x){return x.text;}).join('\t');
+    }).join('\n');
+  }
+
+  // ── copy to clipboard ──
+  function copySelection() {
+    var text = getSelText();
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(flashGlow).catch(function(){fallbackCopy(text);});
+    } else { fallbackCopy(text); }
+  }
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.cssText='position:fixed;opacity:0;top:0;left:0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    flashGlow();
+  }
+
+  // ── mouse events ──
+  document.addEventListener('mousedown', function(e) {
+    var td = e.target.closest('tbody td.ik-sel-cell');
+    if (!td) return;
+    // Don't hijack contenteditable grid cells focus
+    if (td.querySelector('[contenteditable]') || td.getAttribute('contenteditable')) return;
+    _dragging = true; _anchor = td; _active = td;
+    clearSel();
+    td.classList.add('ik-anchor');
+    e.preventDefault();
+  }, true);
+
+  document.addEventListener('mouseover', function(e) {
+    if (!_dragging || !_anchor) return;
+    var td = e.target.closest('tbody td.ik-sel-cell');
+    if (!td) return;
+    _active = td;
+    selectRange(_anchor, _active);
+  });
+
+  document.addEventListener('mouseup', function() { _dragging = false; });
+
+  // click outside → clear
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('tbody td')) { clearSel(); _anchor=null; _active=null; }
+  });
+
+  // ── keyboard ──
+  document.addEventListener('keydown', function(e) {
+    // Ctrl+C → copy selection if any selected cells
+    if ((e.ctrlKey||e.metaKey) && e.key==='c') {
+      var hasSel = document.querySelectorAll('.ik-selected,.ik-anchor').length > 0;
+      if (!hasSel) return;
+      copySelection();
+      e.stopPropagation();
+      return;
+    }
+    // Shift+Arrow → extend selection
+    if (e.shiftKey && ['ArrowDown','ArrowUp','ArrowLeft','ArrowRight'].includes(e.key) && _anchor) {
+      e.preventDefault();
+      var cur = _active || _anchor;
+      var table = cur.closest('table');
+      if (!table) return;
+      var ia = idx(cur);
+      var rows = Array.from(cur.closest('tbody').rows);
+      var nr = ia.r, nc = ia.c;
+      if (e.key==='ArrowDown')  nr = Math.min(nr+1, rows.length-1);
+      if (e.key==='ArrowUp')    nr = Math.max(nr-1, 0);
+      if (e.key==='ArrowRight') nc = Math.min(nc+1, rows[0].cells.length-1);
+      if (e.key==='ArrowLeft')  nc = Math.max(nc-1, 0);
+      var newCell = rows[nr] && rows[nr].cells[nc];
+      if (newCell) { _active = newCell; selectRange(_anchor, _active); }
+    }
+  });
+
+  // expose globally so copy buttons can call it
+  window.ikCopySelection = copySelection;
+  window.ikFlashGlow = flashGlow;
+})();
+
+</body>
+</html>

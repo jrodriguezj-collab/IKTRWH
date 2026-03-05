@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consultor ISOs — IKEA Tools</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #0d1117;
+  --surface:    #161b22;
+  --surface2:   #1c2128;
+  --surface3:   #22272e;
+  --border:     #30363d;
+  --border2:    #3d444d;
+  --blue:       #0051BA;
+  --blue-dark:  #003A8C;
+  --blue-mid:   #1a6dd4;
+  --yellow:     #FFDA1A;
+  --yellow-dk:  #e6c400;
+  --green:      #3fb950;
+  --red:        #f85149;
+  --red-bg:     rgba(248,81,73,.12);
+  --orange:     #f0883e;
+  --purple:     #a371f7;
+  --teal:       #00c48c;
+  --text:       #e6edf3;
+  --text-muted: #8b949e;
+  --text-dim:   #656d76;
+  --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --r:  8px;
+  --rs: 6px;
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── HEADER ── */
+.ik-header {
+  background: linear-gradient(135deg, var(--blue-dark), var(--blue) 55%, var(--blue-mid));
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 3px solid var(--yellow);
+  height: 52px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+.ik-header-left  { display: flex; align-items: center; gap: 12px; }
+.ik-header-right { display: flex; align-items: center; gap: 7px; }
+.ik-header h1 {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--yellow);
+  text-transform: uppercase;
+}
+.ik-header-sub { font-size: 10px; color: rgba(255,255,255,.45); letter-spacing: .5px; }
+.ik-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,.55);
+  text-decoration: none;
+  padding: 4px 9px;
+  border-radius: var(--rs);
+  border: 1px solid rgba(255,255,255,.15);
+  transition: all .15s;
+}
+.ik-back:hover { color: var(--yellow); border-color: rgba(255,218,26,.4); background: rgba(255,218,26,.07); }
+
+/* ── LAYOUT ── */
+.ik-app { display: flex; height: calc(100vh - 52px); }
+.ik-sidebar {
+  width: 300px;
+  min-width: 300px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.ik-main { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+
+/* ── SIDEBAR SECTIONS ── */
+.sb-section { padding: 14px 14px 0; display: flex; flex-direction: column; gap: 8px; }
+.sb-section + .sb-section { border-top: 1px solid var(--border); margin-top: 14px; padding-top: 14px; }
+.sb-last { padding-bottom: 14px; }
+.lbl {
+  font-size: 9px; font-weight: 700; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: .5px;
+}
+
+/* ── UPLOAD ZONE ── */
+.ik-upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--r);
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  cursor: pointer;
+  transition: all .18s;
+  text-align: center;
+  background: var(--bg);
+}
+.ik-upload-zone:hover, .ik-upload-zone.drag { border-color: var(--blue); background: rgba(0,81,186,.04); }
+.ik-upload-zone.loaded { border-color: var(--green); border-style: solid; background: rgba(63,185,80,.04); }
+.upload-icon { font-size: 26px; opacity: .7; }
+.upload-lbl { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.upload-sub { font-size: 10px; color: var(--text-dim); font-family: var(--mono); }
+#fileInput { display: none; }
+
+/* ── STAT PILL ── */
+.stat-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.stat-pill {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--rs);
+  padding: 7px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 70px;
+}
+.stat-num { font-size: 18px; font-weight: 800; color: var(--text); font-family: var(--mono); line-height: 1; }
+.stat-lbl { font-size: 9px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+.stat-num.blue   { color: #7bb8ff; }
+.stat-num.green  { color: var(--green); }
+.stat-num.orange { color: var(--orange); }
+
+/* ── TEXTAREA ISO ── */
+textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--rs);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 7px 9px;
+  transition: border-color .12s;
+  resize: vertical;
+  height: 110px;
+  line-height: 1.6;
+}
+textarea:focus { outline: none; border-color: var(--blue); }
+textarea::placeholder { color: var(--text-dim); }
+
+/* ── BUTTONS ── */
+button {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 12px;
+  border: none;
+  border-radius: var(--rs);
+  cursor: pointer;
+  padding: 6px 12px;
+  transition: all .12s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+button:disabled { opacity: .35; cursor: not-allowed; }
+.btn-blue   { background: var(--blue);   color: #fff; }
+.btn-blue:hover:not(:disabled) { background: var(--blue-mid); transform: translateY(-1px); }
+.btn-yellow { background: var(--yellow); color: #111; font-weight: 700; }
+.btn-yellow:hover:not(:disabled) { background: var(--yellow-dk); }
+.btn-ghost  { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+.btn-ghost:hover:not(:disabled) { background: var(--surface2); color: var(--text); }
+.btn-green  { background: var(--green); color: #0d1117; font-weight: 700; }
+.btn-green:hover:not(:disabled) { filter: brightness(1.1); }
+.btn-full { width: 100%; justify-content: center; }
+.btn-sm { padding: 4px 9px; font-size: 11px; }
+
+.row-btns { display: flex; gap: 6px; }
+
+/* ── INFO / WARN BOXES ── */
+.ik-info-box {
+  background: rgba(0,81,186,.08); border: 1px solid rgba(0,81,186,.22);
+  border-radius: var(--rs); padding: 8px 12px;
+  font-size: 11px; color: #7bb8ff; line-height: 1.55;
+}
+.ik-warn-box {
+  background: rgba(240,136,62,.08); border: 1px solid rgba(240,136,62,.28);
+  border-radius: var(--rs); padding: 7px 9px;
+  font-size: 11px; color: var(--orange); line-height: 1.5;
+}
+
+/* ── MAIN CONTENT ── */
+.main-inner {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  gap: 10px;
+}
+
+/* ── TOOLBAR ── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.toolbar-left { display: flex; align-items: center; gap: 8px; }
+.toolbar-right { display: flex; align-items: center; gap: 6px; }
+
+.result-info {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--rs);
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.result-count { color: var(--yellow); font-weight: 700; }
+.result-notfound { color: var(--orange); font-weight: 700; }
+
+/* ── TABLE WRAP ── */
+.table-wrap {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  position: relative;
+}
+
+table {
+  border-collapse: collapse;
+  min-width: 100%;
+  font-size: 12px;
+}
+
+thead th {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  padding: 9px 12px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  white-space: nowrap;
+}
+thead th:first-child { color: var(--yellow); }
+
+tbody td {
+  border: 1px solid var(--border);
+  padding: 7px 12px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  vertical-align: top;
+  max-width: 340px;
+}
+tbody td:first-child {
+  font-weight: 700;
+  color: #7bb8ff;
+  white-space: nowrap;
+}
+
+tbody tr:hover td { background: rgba(255,255,255,.025); }
+tbody tr.not-found td { background: rgba(248,81,73,.06); }
+tbody tr.not-found td:first-child { color: var(--red); }
+
+/* Estado badge inline */
+.estado-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  font-family: var(--mono);
+}
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 200px;
+  gap: 12px;
+  color: var(--text-dim);
+  text-align: center;
+}
+.empty-icon { font-size: 36px; opacity: .5; }
+.empty-title { font-size: 14px; font-weight: 600; color: var(--text-muted); }
+.empty-sub { font-size: 11px; max-width: 300px; line-height: 1.6; }
+
+/* ── NOTIFICATION ── */
+.ik-notif {
+  display: none;
+  position: fixed;
+  top: 62px;
+  right: 18px;
+  z-index: 9999;
+  padding: 9px 15px;
+  border-radius: var(--rs);
+  font-weight: 600;
+  font-size: 12px;
+  max-width: 340px;
+  animation: slideIn .18s ease;
+  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+}
+@keyframes slideIn { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: translateX(0); } }
+.notif-ok   { background: rgba(63,185,80,.12);  color: var(--green); border: 1px solid var(--green); }
+.notif-err  { background: rgba(248,81,73,.15);  color: #ff7b72;      border: 1px solid var(--red);   }
+.notif-warn { background: rgba(240,136,62,.15); color: var(--orange); border: 1px solid var(--orange); }
+.notif-info { background: rgba(0,81,186,.15);   color: #7bb8ff;      border: 1px solid var(--blue);  }
+
+/* ── COPY FEEDBACK ── */
+.copy-flash {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--green);
+  color: #0d1117;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 8px 20px;
+  border-radius: 20px;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .25s;
+  box-shadow: 0 4px 20px rgba(63,185,80,.4);
+}
+.copy-flash.show { opacity: 1; }
+
+/* ── CELL SELECTION (Excel-like) ── */
+tbody td {
+  cursor: cell;
+  user-select: none;
+  position: relative;
+  transition: background .08s;
+}
+tbody td.selected {
+  background: rgba(0, 81, 186, 0.22) !important;
+  outline: 1px solid rgba(0, 81, 186, 0.6);
+  outline-offset: -1px;
+}
+tbody td.selection-anchor {
+  background: rgba(0, 81, 186, 0.35) !important;
+  outline: 2px solid #0051BA !important;
+  outline-offset: -2px;
+  box-shadow: 0 0 0 1px rgba(0, 81, 186, 0.3), inset 0 0 12px rgba(0, 81, 186, 0.1);
+}
+/* copy feedback glow */
+.copy-glow {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(63,185,80,.15);
+  border: 1px solid var(--green);
+  color: var(--green);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 10px 24px;
+  border-radius: 8px;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .2s;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 30px rgba(63,185,80,.3);
+}
+.copy-glow.show { opacity: 1; }
+/* Copy button in toolbar */
+.btn-copy-sel {
+  background: rgba(0,81,186,.15);
+  border: 1px solid rgba(0,81,186,.35);
+  color: #7bb8ff;
+  border-radius: var(--rs);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .14s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-copy-sel:hover {
+  background: rgba(0,81,186,.28);
+  border-color: rgba(0,81,186,.6);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(0,81,186,.3);
+}
+
+/* ── IKEA EXCEL SELECTION ── */
+.ik-sel-cell {
+  cursor: cell !important;
+  user-select: none !important;
+  position: relative;
+  transition: background .07s;
+}
+.ik-sel-cell.ik-selected {
+  background: rgba(0,81,186,.20) !important;
+  outline: 1px solid rgba(0,81,186,.55);
+  outline-offset: -1px;
+}
+.ik-sel-cell.ik-anchor {
+  background: rgba(0,81,186,.32) !important;
+  outline: 2px solid #0051BA !important;
+  outline-offset: -2px;
+  box-shadow: inset 0 0 14px rgba(0,81,186,.12), 0 0 0 1px rgba(0,81,186,.3);
+}
+/* glow flash on copy */
+.ik-copy-glow {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%) scale(.92);
+  background: rgba(63,185,80,.12);
+  border: 1px solid #3fb950;
+  color: #3fb950;
+  font-weight: 700; font-size: 13px;
+  padding: 10px 26px;
+  border-radius: 9px;
+  z-index: 99999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s, transform .18s;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 32px rgba(63,185,80,.28);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+.ik-copy-glow.ik-glow-show {
+  opacity: 1;
+  transform: translate(-50%,-50%) scale(1);
+}
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="ik-header">
+  <div class="ik-header-left">
+    <span style="font-size:20px">🔎</span>
+    <div>
+      <h1>Consultor ESTADO ISOS GEO</h1>
+      <div class="ik-header-sub">Consulta de estados y comentarios por ISO · Filtro IKEA</div>
+    </div>
+  </div>
+  <div class="ik-header-right">
+    <a class="ik-back" href="index.html">← Inicio</a>
+  </div>
+</div>
+
+<div class="ik-app">
+
+  <!-- SIDEBAR -->
+  <div class="ik-sidebar">
+
+    <!-- CARGA CSV -->
+    <div class="sb-section">
+      <div class="lbl">1 · Cargar archivo</div>
+      <div class="ik-upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">📂</div>
+        <div class="upload-lbl" id="uploadLbl">Haz clic o arrastra tu CSV</div>
+        <div class="upload-sub" id="uploadSub">Columnas: Commerce, ParentOrder, Estado, Comentarionoentrega, Motivonoentrega</div>
+      </div>
+      <input type="file" id="fileInput" accept=".csv,.txt">
+    </div>
+
+    <!-- ESTADÍSTICAS -->
+    <div class="sb-section" id="statsSection" style="display:none">
+      <div class="lbl">Estadísticas del archivo</div>
+      <div class="stat-row">
+        <div class="stat-pill">
+          <div class="stat-num blue" id="statTotal">0</div>
+          <div class="stat-lbl">Total filas</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-num green" id="statIkea">0</div>
+          <div class="stat-lbl">IKEA</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONSULTA -->
+    <div class="sb-section">
+      <div class="lbl">2 · Consultar ISOs</div>
+      <div class="ik-info-box">
+        Pega una o varias ISOs (una por línea, o separadas por coma/tab/espacio). Se buscarán en la columna <strong>ParentOrder</strong>.
+      </div>
+      <textarea id="isoInput" placeholder="Ej:&#10;ISO-00123&#10;ISO-00456&#10;ISO-00789"></textarea>
+      <div class="row-btns">
+        <button class="btn-blue btn-full" onclick="consultarISOs()" id="btnConsultar" disabled>
+          🔍 Consultar ISOs
+        </button>
+      </div>
+      <button class="btn-ghost btn-full btn-sm" onclick="limpiar()">✕ Limpiar consulta</button>
+    </div>
+
+    <!-- EXPORTAR -->
+    <div class="sb-section sb-last">
+      <div class="lbl">3 · Exportar</div>
+      <button class="btn-yellow btn-full" onclick="copiarTabla()" id="btnCopiar" disabled>
+        📋 Copiar tabla (Excel)
+      </button>
+      <div class="ik-info-box" style="font-size:10px; margin-top:2px;">
+        Copia con bordes negros, encabezados en negrita y columna renombrada como <strong>ISO</strong>. Lista para pegar en Excel.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MAIN -->
+  <div class="ik-main">
+    <div class="main-inner">
+
+      <!-- TOOLBAR -->
+      <div class="toolbar" id="toolbar" style="display:none">
+        <div class="toolbar-left">
+          <div class="result-info">
+            <span>Resultados:</span>
+            <span class="result-count" id="resultFound">0</span>
+            <span>encontrados</span>
+            <span style="color:var(--border2)">|</span>
+            <span class="result-notfound" id="resultNotFound">0</span>
+            <span>no hallados</span>
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn-copy-sel" onclick="(()=>{const t=getSelectedText();if(!t)return;navigator.clipboard?.writeText(t).then(flashCopyGlow)})()">📋 Copiar selección</button>
+          <span style="font-size:10px; color:var(--text-dim); font-family:var(--mono);" id="queryCount"></span>
+        </div>
+      </div>
+
+      <!-- TABLE WRAP -->
+      <div class="table-wrap" id="tableWrap">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">📋</div>
+          <div class="empty-title">Sin datos aún</div>
+          <div class="empty-sub">Carga un archivo CSV y pega las ISOs que quieres consultar para ver el resultado aquí.</div>
+        </div>
+        <table id="resultTable" style="display:none">
+          <thead>
+            <tr>
+              <th>ISO</th>
+              <th>Estado</th>
+              <th>Comentario No Entrega</th>
+              <th>Motivo No Entrega</th>
+            </tr>
+          </thead>
+          <tbody id="resultBody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Notificación -->
+<div class="ik-notif" id="notif"></div>
+<!-- Copy flash -->
+<div class="copy-flash" id="copyFlash">✓ Copiado al portapapeles</div>
+
+<script>
+// ── STATE ──
+let allData = [];       // filas IKEA filtradas
+let dataByISO = {};     // mapa ParentOrder → fila
+let currentResults = [];
+
+// ── UPLOAD ──
+const fileInput = document.getElementById('fileInput');
+const uploadZone = document.getElementById('uploadZone');
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) processFile(f);
+});
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) processFile(fileInput.files[0]);
+});
+
+function processFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['csv','txt'].includes(ext)) { notify('Solo se aceptan archivos .csv o .txt', 'err'); return; }
+
+  const reader = new FileReader();
+  reader.onload = e => parseCSV(e.target.result, file.name);
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseCSV(text, fname) {
+  // Detect delimiter
+  const firstLine = text.split('\n')[0];
+  let sep = ',';
+  if ((firstLine.match(/;/g) || []).length > (firstLine.match(/,/g) || []).length) sep = ';';
+
+  const lines = text.split('\n').filter(l => l.trim());
+  if (lines.length < 2) { notify('El archivo parece vacío', 'err'); return; }
+
+  // Parse header
+  const headers = parseRow(lines[0], sep).map(h => h.trim().replace(/^"|"$/g,''));
+
+  // Find columns (case-insensitive)
+  const idx = name => {
+    const n = name.toLowerCase();
+    return headers.findIndex(h => h.toLowerCase() === n);
+  };
+  const iCommerce = idx('commerce');
+  const iParent   = idx('parentorder');
+  const iEstado   = idx('estado');
+  const iCom      = idx('comentarionoentrega');
+  const iMot      = idx('motivonoentrega');
+
+  if (iCommerce === -1 || iParent === -1) {
+    notify('No se encontraron columnas Commerce o ParentOrder', 'err'); return;
+  }
+
+  // Parse rows
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseRow(lines[i], sep).map(c => c.trim().replace(/^"|"$/g,''));
+    const commerce = (cols[iCommerce] || '').toUpperCase().trim();
+    if (commerce !== 'IKEA') continue;
+    rows.push({
+      parentOrder: cols[iParent] || '',
+      estado:      iEstado !== -1 ? (cols[iEstado] || '') : '',
+      comentario:  iCom    !== -1 ? (cols[iCom]    || '') : '',
+      motivo:      iMot    !== -1 ? (cols[iMot]    || '') : '',
+    });
+  }
+
+  allData = rows;
+  dataByISO = {};
+  rows.forEach(r => {
+    const key = r.parentOrder.trim().toLowerCase();
+    dataByISO[key] = r;
+  });
+
+  // Update UI
+  document.getElementById('statTotal').textContent = (lines.length - 1).toLocaleString();
+  document.getElementById('statIkea').textContent  = rows.length.toLocaleString();
+  document.getElementById('statsSection').style.display = '';
+  document.getElementById('uploadZone').classList.add('loaded');
+  document.getElementById('uploadLbl').textContent = `✓ ${fname}`;
+  document.getElementById('uploadSub').textContent = `${rows.length} registros IKEA cargados`;
+  document.getElementById('btnConsultar').disabled = false;
+
+  notify(`Archivo cargado · ${rows.length} registros IKEA`, 'ok');
+}
+
+function parseRow(line, sep) {
+  const result = [];
+  let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQ = !inQ; }
+    else if (c === sep && !inQ) { result.push(cur); cur = ''; }
+    else { cur += c; }
+  }
+  result.push(cur);
+  return result;
+}
+
+// ── CONSULTAR ──
+function consultarISOs() {
+  const raw = document.getElementById('isoInput').value;
+  if (!raw.trim()) { notify('Pega al menos una ISO', 'warn'); return; }
+  if (!allData.length) { notify('Primero carga un archivo CSV', 'warn'); return; }
+
+  // Split by newline, comma, semicolon, tab, or space
+  const isos = raw.split(/[\n\r,;\t ]+/).map(s => s.trim()).filter(Boolean);
+  if (!isos.length) { notify('No se detectaron ISOs válidas', 'warn'); return; }
+
+  currentResults = isos.map(iso => {
+    const key = iso.toLowerCase();
+    const row = dataByISO[key];
+    if (row) return { iso, found: true, ...row };
+    return { iso, found: false, parentOrder: iso, estado: '', comentario: '', motivo: '' };
+  });
+
+  renderTable(currentResults, isos.length);
+}
+
+function renderTable(results, total) {
+  const found    = results.filter(r => r.found).length;
+  const notFound = results.filter(r => !r.found).length;
+
+  document.getElementById('resultFound').textContent    = found;
+  document.getElementById('resultNotFound').textContent = notFound;
+  document.getElementById('queryCount').textContent     = `${total} ISO${total !== 1 ? 's' : ''} consultadas`;
+  document.getElementById('toolbar').style.display      = '';
+
+  const tbody = document.getElementById('resultBody');
+  tbody.innerHTML = '';
+
+  results.forEach(r => {
+    const tr = document.createElement('tr');
+    if (!r.found) tr.classList.add('not-found');
+
+    // ISO / ParentOrder
+    const tdISO = document.createElement('td');
+    tdISO.textContent = r.iso;
+    if (!r.found) {
+      const badge = document.createElement('span');
+      badge.style.cssText = 'margin-left:6px;font-size:9px;background:rgba(248,81,73,.2);color:#ff7b72;padding:1px 5px;border-radius:3px;font-weight:700;';
+      badge.textContent = 'NO HALLADO';
+      tdISO.appendChild(badge);
+    }
+
+    // Estado
+    const tdEstado = document.createElement('td');
+    if (r.estado) {
+      const badge = document.createElement('span');
+      badge.className = 'estado-badge';
+      badge.textContent = r.estado;
+      badge.style.cssText = getEstadoStyle(r.estado);
+      tdEstado.appendChild(badge);
+    }
+
+    // Comentario
+    const tdCom = document.createElement('td');
+    tdCom.textContent = r.comentario;
+    tdCom.style.whiteSpace = 'pre-wrap';
+    tdCom.style.wordBreak = 'break-word';
+
+    // Motivo
+    const tdMot = document.createElement('td');
+    tdMot.textContent = r.motivo;
+    tdMot.style.whiteSpace = 'pre-wrap';
+    tdMot.style.wordBreak = 'break-word';
+
+    tr.appendChild(tdISO);
+    tr.appendChild(tdEstado);
+    tr.appendChild(tdCom);
+    tr.appendChild(tdMot);
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('emptyState').style.display   = 'none';
+  document.getElementById('resultTable').style.display  = '';
+  document.getElementById('btnCopiar').disabled = false;
+}
+
+function getEstadoStyle(estado) {
+  const e = estado.toLowerCase();
+  if (e.includes('entregado') || e.includes('exitoso') || e.includes('completado'))
+    return 'background:rgba(63,185,80,.15);color:#3fb950;';
+  if (e.includes('no entregado') || e.includes('fallido') || e.includes('rechazado') || e.includes('cancelado'))
+    return 'background:rgba(248,81,73,.15);color:#ff7b72;';
+  if (e.includes('en ruta') || e.includes('despacho') || e.includes('transito') || e.includes('tránsito'))
+    return 'background:rgba(0,81,186,.2);color:#7bb8ff;';
+  if (e.includes('pendiente') || e.includes('espera'))
+    return 'background:rgba(240,136,62,.15);color:#f0883e;';
+  return 'background:rgba(139,148,158,.12);color:#8b949e;';
+}
+
+// ── LIMPIAR ──
+function limpiar() {
+  document.getElementById('isoInput').value = '';
+  document.getElementById('resultBody').innerHTML = '';
+  document.getElementById('resultTable').style.display = 'none';
+  document.getElementById('emptyState').style.display = '';
+  document.getElementById('toolbar').style.display = 'none';
+  document.getElementById('btnCopiar').disabled = true;
+  currentResults = [];
+}
+
+// ── COPIAR TABLA EXCEL ──
+function copiarTabla() {
+  if (!currentResults.length) return;
+
+  // Build HTML table for clipboard (Excel-compatible with borders)
+  const headers = ['ISO', 'Estado', 'Comentario No Entrega', 'Motivo No Entrega'];
+  const borderStyle = 'border:1px solid #000000;padding:6px 10px;';
+  const headerStyle = borderStyle + 'font-weight:bold;background:#f2f2f2;';
+
+  let html = `<table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px;">`;
+  html += `<tr>`;
+  headers.forEach(h => { html += `<th style="${headerStyle}">${h}</th>`; });
+  html += `</tr>`;
+
+  currentResults.forEach(r => {
+    html += `<tr>`;
+    html += `<td style="${borderStyle}">${escHtml(r.iso)}${!r.found ? ' [NO HALLADO]' : ''}</td>`;
+    html += `<td style="${borderStyle}">${escHtml(r.estado)}</td>`;
+    html += `<td style="${borderStyle}">${escHtml(r.comentario)}</td>`;
+    html += `<td style="${borderStyle}">${escHtml(r.motivo)}</td>`;
+    html += `</tr>`;
+  });
+  html += `</table>`;
+
+  // Also build plain text (TSV) for fallback
+  let tsv = headers.join('\t') + '\n';
+  currentResults.forEach(r => {
+    tsv += [
+      r.iso + (!r.found ? ' [NO HALLADO]' : ''),
+      r.estado, r.comentario, r.motivo
+    ].map(v => v.replace(/\t/g,' ')).join('\t') + '\n';
+  });
+
+  // Copy to clipboard
+  try {
+    const blob = new Blob([html], { type: 'text/html' });
+    const blobPlain = new Blob([tsv], { type: 'text/plain' });
+    const item = new ClipboardItem({ 'text/html': blob, 'text/plain': blobPlain });
+    navigator.clipboard.write([item]).then(() => flashCopied()).catch(() => fallbackCopy(tsv));
+  } catch {
+    fallbackCopy(tsv);
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+  flashCopied();
+}
+
+function flashCopied() {
+  const el = document.getElementById('copyFlash');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── NOTIFY ──
+function notify(msg, type='info') {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.className = `ik-notif notif-${type}`;
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.display = 'none'; }, 3200);
+}
+
+// ── EXCEL-LIKE CELL SELECTION ──
+let anchorCell = null;
+let activeCell = null;
+let isDragging = false;
+
+function getCellIndex(td) {
+  const tr = td.parentElement;
+  const tbody = tr.parentElement;
+  const rowIdx = Array.from(tbody.rows).indexOf(tr);
+  const colIdx = Array.from(tr.cells).indexOf(td);
+  return { rowIdx, colIdx };
+}
+
+function getTableCells() {
+  return document.querySelectorAll('#resultBody tr td');
+}
+
+function clearSelection() {
+  document.querySelectorAll('#resultBody td.selected, #resultBody td.selection-anchor').forEach(td => {
+    td.classList.remove('selected', 'selection-anchor');
+  });
+}
+
+function selectRange(anchor, active) {
+  clearSelection();
+  const tbody = document.getElementById('resultBody');
+  if (!tbody || !anchor || !active) return;
+  const aIdx = getCellIndex(anchor);
+  const bIdx = getCellIndex(active);
+  const r1 = Math.min(aIdx.rowIdx, bIdx.rowIdx), r2 = Math.max(aIdx.rowIdx, bIdx.rowIdx);
+  const c1 = Math.min(aIdx.colIdx, bIdx.colIdx), c2 = Math.max(aIdx.colIdx, bIdx.colIdx);
+  Array.from(tbody.rows).slice(r1, r2+1).forEach(tr => {
+    Array.from(tr.cells).slice(c1, c2+1).forEach(td => {
+      td.classList.add('selected');
+    });
+  });
+  anchor.classList.add('selection-anchor');
+}
+
+function getSelectedText() {
+  const selected = [...document.querySelectorAll('#resultBody td.selected, #resultBody td.selection-anchor')];
+  if (!selected.length) return '';
+  const tbody = document.getElementById('resultBody');
+  const rows = {};
+  selected.forEach(td => {
+    const ri = getCellIndex(td).rowIdx;
+    if (!rows[ri]) rows[ri] = [];
+    rows[ri].push({ col: getCellIndex(td).colIdx, text: td.textContent.trim() });
+  });
+  return Object.keys(rows).sort((a,b)=>a-b).map(ri => {
+    return rows[ri].sort((a,b)=>a.col-b.col).map(c=>c.text).join('\t');
+  }).join('\n');
+}
+
+function flashCopyGlow() {
+  const el = document.getElementById('copyGlow');
+  if (!el) return;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+// Mouse events on tbody
+document.addEventListener('mousedown', e => {
+  const td = e.target.closest('#resultBody td');
+  if (!td) return;
+  e.preventDefault();
+  isDragging = true;
+  anchorCell = td;
+  activeCell = td;
+  clearSelection();
+  td.classList.add('selection-anchor');
+});
+
+document.addEventListener('mouseover', e => {
+  if (!isDragging) return;
+  const td = e.target.closest('#resultBody td');
+  if (!td || !anchorCell) return;
+  activeCell = td;
+  selectRange(anchorCell, activeCell);
+});
+
+document.addEventListener('mouseup', () => { isDragging = false; });
+
+// Keyboard: Shift+Arrow to extend selection
+document.addEventListener('keydown', e => {
+  if (e.key === 'c' && (e.ctrlKey || e.metaKey)) {
+    const sel = document.querySelectorAll('#resultBody td.selected, #resultBody td.selection-anchor');
+    if (!sel.length) return;
+    const text = getSelectedText();
+    if (!text) return;
+    navigator.clipboard?.writeText(text).then(flashCopyGlow).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      flashCopyGlow();
+    });
+    e.stopPropagation();
+    return;
+  }
+
+  if (!anchorCell) return;
+
+  if (e.shiftKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+    e.preventDefault();
+    const tbody = document.getElementById('resultBody');
+    if (!tbody || !activeCell) return;
+    const { rowIdx, colIdx } = getCellIndex(activeCell);
+    let nRow = rowIdx, nCol = colIdx;
+    if (e.key === 'ArrowDown') nRow = Math.min(nRow+1, tbody.rows.length-1);
+    else if (e.key === 'ArrowUp') nRow = Math.max(nRow-1, 0);
+    else if (e.key === 'ArrowRight') nCol = Math.min(nCol+1, tbody.rows[0].cells.length-1);
+    else if (e.key === 'ArrowLeft') nCol = Math.max(nCol-1, 0);
+    const newCell = tbody.rows[nRow]?.cells[nCol];
+    if (newCell) { activeCell = newCell; selectRange(anchorCell, activeCell); }
+  }
+});
+
+// Click outside table: clear selection
+document.addEventListener('click', e => {
+  if (!e.target.closest('#resultBody')) { clearSelection(); anchorCell = null; activeCell = null; }
+});
+
+</script>
+<div class="copy-glow" id="copyGlow">✓ Copiado</div>
+
+// ═══════════════════════════════════════════════
+//  IKEA EXCEL-LIKE CELL SELECTION (universal)
+// ═══════════════════════════════════════════════
+(function() {
+  var _anchor = null, _active = null, _dragging = false;
+
+  // ── inject glow div ──
+  var _glow = document.createElement('div');
+  _glow.className = 'ik-copy-glow';
+  _glow.id = 'ikCopyGlow';
+  _glow.textContent = '✓ Copiado';
+  document.body.appendChild(_glow);
+  var _glowT;
+  function flashGlow() {
+    _glow.classList.add('ik-glow-show');
+    clearTimeout(_glowT);
+    _glowT = setTimeout(function(){ _glow.classList.remove('ik-glow-show'); }, 1600);
+  }
+
+  // ── mark all td/th in standard tables as selectable ──
+  function markSelectableCells() {
+    document.querySelectorAll('tbody td, .ik-grid-table tbody td').forEach(function(td) {
+      td.classList.add('ik-sel-cell');
+    });
+  }
+
+  // ── also watch for dynamically rendered tables ──
+  var _mo = new MutationObserver(function() { markSelectableCells(); });
+  _mo.observe(document.body, { childList: true, subtree: true });
+  markSelectableCells();
+
+  // ── get row/col indices ──
+  function idx(td) {
+    var tr = td.parentElement;
+    var ri = Array.from(tr.parentElement.rows || tr.parentElement.children).indexOf(tr);
+    var ci = Array.from(tr.cells || tr.children).indexOf(td);
+    return { r: ri, c: ci };
+  }
+
+  // ── clear all selection highlight ──
+  function clearSel() {
+    document.querySelectorAll('.ik-selected,.ik-anchor').forEach(function(el) {
+      el.classList.remove('ik-selected','ik-anchor');
+    });
+  }
+
+  // ── select range between two cells (must be in same table) ──
+  function selectRange(a, b) {
+    if (!a || !b) return;
+    // find shared table
+    var tA = a.closest('table'), tB = b.closest('table');
+    if (!tA || tA !== tB) { clearSel(); if(a) { a.classList.add('ik-anchor'); } return; }
+    clearSel();
+    var ia = idx(a), ib = idx(b);
+    var r1 = Math.min(ia.r,ib.r), r2 = Math.max(ia.r,ib.r);
+    var c1 = Math.min(ia.c,ib.c), c2 = Math.max(ia.c,ib.c);
+    var tbody = a.closest('tbody') || a.closest('table');
+    Array.from(tbody.rows || tbody.querySelectorAll('tr')).slice(r1, r2+1).forEach(function(tr) {
+      Array.from(tr.cells).slice(c1, c2+1).forEach(function(td) {
+        td.classList.add('ik-selected');
+      });
+    });
+    a.classList.add('ik-anchor');
+  }
+
+  // ── get text from selected cells as TSV ──
+  function getSelText() {
+    var cells = Array.from(document.querySelectorAll('.ik-selected,.ik-anchor'));
+    if (!cells.length) return '';
+    var byRow = {};
+    cells.forEach(function(td) {
+      var i = idx(td);
+      if (!byRow[i.r]) byRow[i.r] = [];
+      byRow[i.r].push({ c: i.c, text: (td.innerText || td.textContent || '').trim() });
+    });
+    return Object.keys(byRow).sort(function(a,b){return a-b;}).map(function(r) {
+      return byRow[r].sort(function(a,b){return a.c-b.c;}).map(function(x){return x.text;}).join('\t');
+    }).join('\n');
+  }
+
+  // ── copy to clipboard ──
+  function copySelection() {
+    var text = getSelText();
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(flashGlow).catch(function(){fallbackCopy(text);});
+    } else { fallbackCopy(text); }
+  }
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.cssText='position:fixed;opacity:0;top:0;left:0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    flashGlow();
+  }
+
+  // ── mouse events ──
+  document.addEventListener('mousedown', function(e) {
+    var td = e.target.closest('tbody td.ik-sel-cell');
+    if (!td) return;
+    // Don't hijack contenteditable grid cells focus
+    if (td.querySelector('[contenteditable]') || td.getAttribute('contenteditable')) return;
+    _dragging = true; _anchor = td; _active = td;
+    clearSel();
+    td.classList.add('ik-anchor');
+    e.preventDefault();
+  }, true);
+
+  document.addEventListener('mouseover', function(e) {
+    if (!_dragging || !_anchor) return;
+    var td = e.target.closest('tbody td.ik-sel-cell');
+    if (!td) return;
+    _active = td;
+    selectRange(_anchor, _active);
+  });
+
+  document.addEventListener('mouseup', function() { _dragging = false; });
+
+  // click outside → clear
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('tbody td')) { clearSel(); _anchor=null; _active=null; }
+  });
+
+  // ── keyboard ──
+  document.addEventListener('keydown', function(e) {
+    // Ctrl+C → copy selection if any selected cells
+    if ((e.ctrlKey||e.metaKey) && e.key==='c') {
+      var hasSel = document.querySelectorAll('.ik-selected,.ik-anchor').length > 0;
+      if (!hasSel) return;
+      copySelection();
+      e.stopPropagation();
+      return;
+    }
+    // Shift+Arrow → extend selection
+    if (e.shiftKey && ['ArrowDown','ArrowUp','ArrowLeft','ArrowRight'].includes(e.key) && _anchor) {
+      e.preventDefault();
+      var cur = _active || _anchor;
+      var table = cur.closest('table');
+      if (!table) return;
+      var ia = idx(cur);
+      var rows = Array.from(cur.closest('tbody').rows);
+      var nr = ia.r, nc = ia.c;
+      if (e.key==='ArrowDown')  nr = Math.min(nr+1, rows.length-1);
+      if (e.key==='ArrowUp')    nr = Math.max(nr-1, 0);
+      if (e.key==='ArrowRight') nc = Math.min(nc+1, rows[0].cells.length-1);
+      if (e.key==='ArrowLeft')  nc = Math.max(nc-1, 0);
+      var newCell = rows[nr] && rows[nr].cells[nc];
+      if (newCell) { _active = newCell; selectRange(_anchor, _active); }
+    }
+  });
+
+  // expose globally so copy buttons can call it
+  window.ikCopySelection = copySelection;
+  window.ikFlashGlow = flashGlow;
+})();
+
+</body>
+</html>

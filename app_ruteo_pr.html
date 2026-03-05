@@ -1,74 +1,87 @@
 <!DOCTYPE html>
-
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>APP DE RUTEO PR</title>
-    <script src="xlsx.min.js"></script>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5; color: #333; padding: 20px; margin: 0; }
-        .container { max-width: 900px; margin: auto; background: #fff; padding: 25px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 25px; border-top: 5px solid #0058a3;}
-        h2 { color: #0058a3; margin-top: 0; border-bottom: 2px solid #fbd914; padding-bottom: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;}
-        h3 { color: #0058a3; font-size: 18px; margin-bottom: 15px;}
-        .upload-group { background: #fafafa; border: 1px dashed #0058a3; padding: 15px; border-radius: 4px; margin-bottom: 15px; }
-        .upload-group label { font-weight: bold; display: block; margin-bottom: 8px; color: #0058a3; }
-        .mandatory-badge { background-color: #c0392b; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 5px; vertical-align: middle; font-weight: bold;}
-        .btn { border: none; padding: 10px 18px; cursor: pointer; border-radius: 4px; font-size: 14px; font-weight: bold; transition: 0.2s;}
-        .btn:disabled { background-color: #e0e0e0 !important; color: #9e9e9e !important; border: 2px solid #ccc !important; cursor: not-allowed; opacity: 1;}
-        .btn-main { background-color: #0058a3; color: #fff; font-size: 16px; padding: 15px; width: 100%; border: 2px solid #0058a3;}
-        .btn-main:hover:not(:disabled) { background-color: #00427a; border-color: #00427a;}
-        .btn-blue { background-color: #0058a3; color: #fff; border: 2px solid #0058a3;}
-        .btn-blue:hover:not(:disabled) { background-color: #00427a; border-color: #00427a;}
-        .btn-yellow { background-color: #fbd914; color: #0058a3; border: 2px solid #fbd914;}
-        .btn-yellow:hover:not(:disabled) { background-color: #e5c317; border-color: #e5c317;}
-        .button-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; justify-content: center;}
-        .msg { font-size: 14px; padding: 12px; margin: 12px 0; font-weight: bold; border-radius: 4px; display: none; text-align: center;}
-        .success { background: #e6f0fa; color: #0058a3; border: 1px solid #0058a3; display: block;}
-        .error { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; display: block;}
-        .warning { background: #fff3e0; color: #ef6c00; border: 1px solid #ffcc80; display: block;}
-        .final-section { background-color: #fff; border: 3px solid #0058a3; text-align: center;}
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ruteo PR — IKEA Tools</title>
+<script src="xlsx.min.js"></script>
+<link rel="stylesheet" href="ikea-theme.css">
+<style>
+body { overflow: auto; height: auto; min-height: 100vh; }
+.pr-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; margin-bottom: 16px; }
+.pr-section-title { font-size: 13px; font-weight: 700; color: var(--yellow); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; border-bottom: 2px solid var(--yellow); padding-bottom: 8px; }
+.pr-upload { background: var(--surface2); border: 1px dashed var(--border2); border-radius: var(--r); padding: 14px; margin-bottom: 12px; }
+.pr-upload label { font-weight: 600; display: block; margin-bottom: 8px; color: #7bb8ff; font-size: 12px; }
+.pr-msg { font-size: 12px; padding: 8px 12px; margin: 8px 0; font-weight: 600; border-radius: var(--rs); display: none; }
+.pr-msg.success { background: rgba(63,185,80,.12); color: var(--green); border: 1px solid var(--green); display: block; }
+.pr-msg.error   { background: var(--red-bg); color: #ff7b72; border: 1px solid var(--red); display: block; }
+.pr-msg.warning { background: rgba(240,136,62,.12); color: var(--orange); border: 1px solid var(--orange); display: block; }
+.pr-btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.pr-final { border: 2px solid var(--yellow); text-align: center; }
+.pr-final .pr-section-title { color: var(--yellow); }
+</style>
 </head>
 <body>
 
-<div class="container">
-    <h2>1. Pre Ruteo</h2>
-    <div class="upload-group">
-        <label>📁 Cargar Archivo Base SCI <span class="mandatory-badge">Obligatorio</span></label>
-        <input type="file" id="fileFlujo1" accept=".xlsx, .xls">
-        <div id="msgFlujo1" class="msg"></div>
+<!-- HEADER -->
+<div class="ik-header">
+  <div class="ik-header-left">
+    <span class="ik-header-icon">📦</span>
+    <div>
+      <h1>Ruteo PR</h1>
+      <div class="ik-header-sub">Pre Ruteo · Post Ruteo · Exportaciones Finales</div>
     </div>
-    <div class="button-group">
-        <button class="btn btn-blue f1-btn" onclick="descargarTicketsF1('PROJECT', 'RUTEAR PROYECTOS')" disabled>Descargar Proyectos</button>
-        <button class="btn btn-blue f1-btn" onclick="descargarTicketsF1('POST_SALES', 'RUTEAR POST SALES')" disabled>Descargar Post Sales</button>
-        <button class="btn btn-blue f1-btn" onclick="descargarMiniTicket()" disabled>Descargar Mini Ticket</button>
-        <button class="btn btn-blue f1-btn" onclick="descargarRegularTicket()" disabled>Descargar Regular Ticket</button>
-    </div>
+  </div>
+  <div class="ik-header-right">
+    <a href="index.html" class="ik-back">← Inicio</a>
+  </div>
 </div>
 
-<div class="container">
-    <h2>2. Post Ruteo</h2>
-    <div class="upload-group">
-        <label>📁 1. Cargar Plan Simpliroute <span class="mandatory-badge">Obligatorio</span></label>
-        <input type="file" id="fileSimpli" accept=".xlsx, .xls, .csv">
-    </div>
-    <div class="upload-group">
-        <label>📁 2. Cargar Archivo Base SCI <span class="mandatory-badge">Obligatorio</span></label>
-        <input type="file" id="fileRuteo2" accept=".xlsx, .xls, .csv">
-        <div style="font-size: 12px; color: #7f8c8d; margin-top: 5px;">Requerido para el cruce de comuna</div>
-    </div>
-    <button class="btn btn-main" id="processBtn" onclick="processFlujo2()">Ejecutar Polinomio y Generar Plan</button>
-    <div id="msgFlujo2" class="msg"></div>
-</div>
+<div style="max-width:900px;margin:20px auto;padding:0 20px 40px;">
 
-<div class="container final-section">
-    <h2>🚀 EXPORTACIONES FINALES</h2>
-    <p style="font-size: 13px; color: #555;">Una vez procesados los flujos correspondientes, los botones se habilitarán para descargar.</p>
-    <div class="button-group" style="margin-top: 20px;">
-        <button class="btn btn-yellow" id="btnDownloadPlan" onclick="downloadPlan()" disabled>1. SimpliRoute Plan RUTEO</button>
-        <button class="btn btn-blue" id="btnDownloadRoute" onclick="downloadRouteTo()" disabled>2. ROUTE TO picking</button>
-        <button class="btn btn-blue" id="btnDownloadPreola" onclick="download3Preola()" disabled>3. ROUTE TO PROYECT+POST SALES picking</button>
+  <!-- PRE RUTEO -->
+  <div class="pr-section">
+    <div class="pr-section-title">1. Pre Ruteo</div>
+    <div class="pr-upload">
+      <label>📁 Cargar Archivo Base SCI <span style="background:var(--red);color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-left:4px;">Obligatorio</span></label>
+      <input type="file" id="fileFlujo1" accept=".xlsx,.xls" style="width:100%">
+      <div id="msgFlujo1" class="pr-msg"></div>
     </div>
+    <div class="pr-btn-group">
+      <button class="btn-blue f1-btn" onclick="descargarTicketsF1('PROJECT','RUTEAR PROYECTOS')" disabled>🏗 Proyectos</button>
+      <button class="btn-blue f1-btn" onclick="descargarTicketsF1('POST_SALES','RUTEAR POST SALES')" disabled>📦 Post Sales</button>
+      <button class="btn-blue f1-btn" onclick="descargarMiniTicket()" disabled>🎫 Mini Ticket</button>
+      <button class="btn-blue f1-btn" onclick="descargarRegularTicket()" disabled>🎟 Ticket Regular</button>
+    </div>
+  </div>
+
+  <!-- POST RUTEO -->
+  <div class="pr-section">
+    <div class="pr-section-title">2. Post Ruteo</div>
+    <div class="pr-upload">
+      <label>📁 1. Plan Simpliroute <span style="background:var(--red);color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-left:4px;">Obligatorio</span></label>
+      <input type="file" id="fileSimpli" accept=".xlsx,.xls,.csv" style="width:100%">
+    </div>
+    <div class="pr-upload">
+      <label>📁 2. Archivo Base SCI <span style="background:var(--red);color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-left:4px;">Obligatorio</span></label>
+      <input type="file" id="fileRuteo2" accept=".xlsx,.xls,.csv" style="width:100%">
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">Requerido para el cruce de comuna</div>
+    </div>
+    <button class="btn-yellow btn-full" id="processBtn" onclick="processFlujo2()" style="margin-top:4px;padding:10px 18px;font-size:13px;">▶ Ejecutar Polinomio y Generar Plan</button>
+    <div id="msgFlujo2" class="pr-msg"></div>
+  </div>
+
+  <!-- EXPORTACIONES FINALES -->
+  <div class="pr-section pr-final">
+    <div class="pr-section-title">🚀 Exportaciones Finales</div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Una vez procesados los flujos, los botones se habilitarán para descargar.</p>
+    <div class="pr-btn-group" style="justify-content:center;">
+      <button class="btn-yellow" id="btnDownloadPlan" onclick="downloadPlan()" disabled>1. SimpliRoute Plan RUTEO</button>
+      <button class="btn-blue" id="btnDownloadRoute" onclick="downloadRouteTo()" disabled>2. ROUTE TO picking</button>
+      <button class="btn-blue" id="btnDownloadPreola" onclick="download3Preola()" disabled>3. ROUTE TO PROYECT+POST SALES</button>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -110,7 +123,7 @@ function getFechaManana() {
 function showMsg(id, text, type) {
     const el = document.getElementById(id);
     el.textContent = text;
-    el.className = `msg ${type}`;
+    el.className = 'pr-msg ' + type;
     setTimeout(() => { if (el.className.includes(type)) el.style.display = 'none'; }, 5000);
 }
 function exportarExcel(dataArray, nombreExacto, skipHeader = false) {
@@ -512,5 +525,7 @@ function download3Preola() {
 }
 </script>
 
+</body>
+</html>
 </body>
 </html>
